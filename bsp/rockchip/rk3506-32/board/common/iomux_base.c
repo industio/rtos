@@ -52,12 +52,14 @@ RT_WEAK void uart3_iomux_config(void)
 RT_WEAK void uart4_iomux_config(void)
 {
     HAL_PINCTRL_SetRMIO(GPIO_BANK1,
-                        GPIO_PIN_C2,
+                        //GPIO_PIN_C2,
+						GPIO_PIN_D3,
                         RMIO_UART4_TX);
 
     HAL_PINCTRL_SetRMIO(GPIO_BANK1,
-                        GPIO_PIN_C3,
-                        RMIO_UART4_RX);
+                        //GPIO_PIN_C3,
+						GPIO_PIN_D2,
+                        RMIO_UART4_RX);	
 }
 
 /**
