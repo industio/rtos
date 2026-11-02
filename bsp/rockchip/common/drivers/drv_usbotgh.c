@@ -22,7 +22,6 @@
 #define OTG_HCD_CONNECT_DEBOUNCE_MS     500
 #define OTG_HCD_WORK_QUEUE_STACK_SIZE   512
 #define OTG_HCD_WORK_QUEUE_PRIORITY     0
-#define OTG_HCD_MAX_CHANNEL             9
 
 struct rockchip_usbotgh
 {
@@ -32,7 +31,7 @@ struct rockchip_usbotgh
     struct uhcd *uhcd;
     struct rt_workqueue *usbh_workqueue;
     struct rt_work usbh_work;
-    struct rt_completion urb_completion[OTG_HCD_MAX_CHANNEL];
+    struct rt_completion urb_completion;
     rt_isr_handler_t irq_handler;
     rt_uint8_t id;
     rt_uint16_t pipe_index;
@@ -137,7 +136,7 @@ void HAL_HCD_Disconnect_Callback(struct HCD_HANDLE *hhcd)
 void HAL_HCD_HCNotifyURBChange_Callback(struct HCD_HANDLE *hhcd, uint8_t chnum, eUSB_OTG_urbState urb_state)
 {
     usbotgh_t usbotgh = (usbotgh_t)hhcd->pData;
-    rt_completion_done(&usbotgh->urb_completion[chnum]);
+    rt_completion_done(&usbotgh->urb_completion);
 }
 
 static rt_err_t rt_usbotgh_reset_port(usbotgh_t usbotgh)
@@ -155,7 +154,6 @@ static int rt_usbotgh_pipe_xfer(upipe_t pipe, rt_uint8_t token, void *buffer, in
     eUSB_OTG_hcState hc_state;
     eUSB_OTG_urbState urb_state;
     static int bulk_nak_delay = 5;
-    rt_uint8_t chnum = pipe->pipe_index;
 
     while (1)
     {
@@ -163,19 +161,19 @@ static int rt_usbotgh_pipe_xfer(upipe_t pipe, rt_uint8_t token, void *buffer, in
         {
             return -1;
         }
-        rt_completion_init(&usbotgh->urb_completion[chnum]);
+        rt_completion_init(&usbotgh->urb_completion);
         HAL_HCD_HCSubmitRequest(&usbotgh->instance,
-                                chnum,
+                                pipe->pipe_index,
                                 (pipe->ep.bEndpointAddress & 0x80) >> 7,
                                 pipe->ep.bmAttributes,
                                 token,
                                 buffer,
                                 nbytes,
                                 0);
-        rt_completion_wait(&usbotgh->urb_completion[chnum], timeout);
+        rt_completion_wait(&usbotgh->urb_completion, timeout);
 
-        hc_state = HAL_HCD_HCGetState(&usbotgh->instance, chnum);
-        urb_state = HAL_HCD_HCGetURBState(&usbotgh->instance, chnum);
+        hc_state = HAL_HCD_HCGetState(&usbotgh->instance, pipe->pipe_index);
+        urb_state = HAL_HCD_HCGetURBState(&usbotgh->instance, pipe->pipe_index);
 
         if (hc_state == HC_NAK)
         {
@@ -192,9 +190,9 @@ static int rt_usbotgh_pipe_xfer(upipe_t pipe, rt_uint8_t token, void *buffer, in
                 if (bulk_nak_delay < 50)
                     bulk_nak_delay += 5;
             }
-            HAL_HCD_HCHalt(&usbotgh->instance, chnum);
+            HAL_HCD_HCHalt(&usbotgh->instance, pipe->pipe_index);
             HAL_HCD_HCInit(&usbotgh->instance,
-                           chnum,
+                           pipe->pipe_index,
                            pipe->ep.bEndpointAddress,
                            pipe->inst->address,
                            USB_OTG_SPEED_HIGH,
@@ -229,8 +227,7 @@ static int rt_usbotgh_pipe_xfer(upipe_t pipe, rt_uint8_t token, void *buffer, in
             }
             return -1;
         }
-        else if ((urb_state == URB_IDLE && hc_state == HC_IDLE &&
-                  pipe->inst->intf[0]->intf_desc->bInterfaceClass == USB_CLASS_MASS_STORAGE) ||
+        else if ((urb_state == URB_IDLE && hc_state == HC_IDLE) ||
                  (urb_state == URB_NOTREADY && hc_state == HC_XACTERR))
         {
             RT_DEBUG_LOG(RT_DEBUG_USB, ("urb %d and hc %d, reinit hcd\n", urb_state, hc_state));
@@ -252,7 +249,7 @@ static int rt_usbotgh_pipe_xfer(upipe_t pipe, rt_uint8_t token, void *buffer, in
             }
             if (pipe->ep.bEndpointAddress & 0x80)
             {
-                return HAL_HCD_HCGetXferCount(&usbotgh->instance, chnum);
+                return HAL_HCD_HCGetXferCount(&usbotgh->instance, pipe->pipe_index);
             }
             return nbytes;
         }

@@ -21,12 +21,9 @@
 /* Interrupt level for kernel systimer interrupt and software timer interrupt */
 #define RT_KERNEL_INTERRUPT_LEVEL               0
 
-/* Initial CSR MSTATUS/SSTATUS value when thread created */
-#ifdef SMODE_RTOS
-#define RT_INITIAL_XSTATUS                      (SSTATUS_SPP | SSTATUS_SPIE | MSTATUS_FS_INITIAL | MSTATUS_VS_INITIAL)
-#else
-#define RT_INITIAL_XSTATUS                      (MSTATUS_MPP | MSTATUS_MPIE | MSTATUS_FS_INITIAL | MSTATUS_VS_INITIAL)
-#endif
+/* Initial CSR MSTATUS value when thread created */
+#define RT_INITIAL_MSTATUS                      (MSTATUS_MPP | MSTATUS_MPIE | MSTATUS_FS_INITIAL)
+
 /**
  * @brief from thread used interrupt context switch
  *
@@ -80,7 +77,7 @@ struct rt_hw_stack_frame
     rt_ubase_t t5;         /*!< x30 - t5     - temporary register 5                */
     rt_ubase_t t6;         /*!< x31 - t6     - temporary register 6                */
 #endif
-    rt_ubase_t xstatus;    /*!<              - machine/Supervisor status register             */
+    rt_ubase_t mstatus;    /*!<              - machine status register             */
 };
 
 /**
@@ -117,7 +114,7 @@ rt_uint8_t *rt_hw_stack_init(void       *tentry,
     frame->a0      = (rt_ubase_t)parameter;
     frame->epc     = (rt_ubase_t)tentry;
 
-    frame->xstatus = RT_INITIAL_XSTATUS;
+    frame->mstatus = RT_INITIAL_MSTATUS;
 
     return stk;
 }
@@ -176,11 +173,7 @@ RT_WEAK void rt_hw_cpu_shutdown()
 void rt_hw_taskswitch(void)
 {
     /* Clear Software IRQ, A MUST */
-#ifdef SMODE_RTOS
-    SysTimer_ClearHartSWIRQ(__RV_CSR_READ(CSR_SHARTID));
-#else
     SysTimer_ClearSWIRQ();
-#endif
     rt_thread_switch_interrupt_flag = 0;
 }
 
@@ -196,20 +189,9 @@ void rt_hw_taskswitch(void)
 void rt_hw_ticksetup(void)
 {
     uint64_t ticks = SYSTICK_TICK_CONST;
-#ifdef SMODE_RTOS
+
     /* Make SWI and SysTick the lowest priority interrupts. */
     /* Stop and clear the SysTimer. SysTimer as Non-Vector Interrupt */
-    SysTick_HartConfig(ticks, __RV_CSR_READ(CSR_SHARTID));
-    ECLIC_DisableIRQ_S(SysTimer_IRQn);
-    ECLIC_SetLevelIRQ_S(SysTimer_IRQn, RT_KERNEL_INTERRUPT_LEVEL);
-    ECLIC_SetShvIRQ_S(SysTimer_IRQn, ECLIC_NON_VECTOR_INTERRUPT);
-    ECLIC_EnableIRQ_S(SysTimer_IRQn);
-
-    /* Set SWI interrupt level to lowest level/priority, SysTimerSW as Vector Interrupt */
-    ECLIC_SetShvIRQ_S(SysTimerSW_IRQn, ECLIC_VECTOR_INTERRUPT);
-    ECLIC_SetLevelIRQ_S(SysTimerSW_IRQn, RT_KERNEL_INTERRUPT_LEVEL);
-    ECLIC_EnableIRQ_S(SysTimerSW_IRQn);
-#else
     SysTick_Config(ticks);
     ECLIC_DisableIRQ(SysTimer_IRQn);
     ECLIC_SetLevelIRQ(SysTimer_IRQn, RT_KERNEL_INTERRUPT_LEVEL);
@@ -220,7 +202,6 @@ void rt_hw_ticksetup(void)
     ECLIC_SetShvIRQ(SysTimerSW_IRQn, ECLIC_VECTOR_INTERRUPT);
     ECLIC_SetLevelIRQ(SysTimerSW_IRQn, RT_KERNEL_INTERRUPT_LEVEL);
     ECLIC_EnableIRQ(SysTimerSW_IRQn);
-#endif
 }
 
 /**
@@ -238,11 +219,7 @@ void rt_hw_ticksetup(void)
 void SysTick_Handler(void)
 {
     /* Reload systimer */
-#ifdef SMODE_RTOS
-    SysTick_HartReload(SYSTICK_TICK_CONST, __RV_CSR_READ(CSR_SHARTID));
-#else
     SysTick_Reload(SYSTICK_TICK_CONST);
-#endif
 
     /* enter interrupt */
     rt_interrupt_enter();
@@ -266,7 +243,7 @@ void SysTick_Handler(void)
  */
 rt_base_t rt_hw_interrupt_disable(void)
 {
-    return __RV_CSR_READ_CLEAR(CSR_XSTATUS, XSTATUS_XIE);
+    return __RV_CSR_READ_CLEAR(CSR_MSTATUS, MSTATUS_MIE);
 }
 
 /**
@@ -276,11 +253,11 @@ rt_base_t rt_hw_interrupt_disable(void)
  */
 void rt_hw_interrupt_enable(rt_base_t level)
 {
-    __RV_CSR_WRITE(CSR_XSTATUS, level);
+    __RV_CSR_WRITE(CSR_MSTATUS, level);
 }
 
 static struct rt_irq_desc irq_desc[NUM_INTERRUPTS];
-#if (defined(__ECLIC_PRESENT) && (__ECLIC_PRESENT == 1) && !defined(__TEE_PRESENT))
+#if defined(__ECLIC_PRESENT) && (__ECLIC_PRESENT == 1)
 /**
  * \brief  Initialize a specific IRQ and register the handler
  * \details
@@ -398,13 +375,8 @@ rt_isr_handler_t rt_hw_interrupt_install(int vector, rt_isr_handler_t handler,
 
     old_handler = irq_desc[vector].handler;
     if (handler != RT_NULL) {
-#ifdef SMODE_RTOS
-        ECLIC_Register_IRQ_S(vector, ECLIC_NON_VECTOR_INTERRUPT,
-                           ECLIC_LEVEL_TRIGGER, INTLEVEL, INTPRIORITY, (void*)handler);
-#else
         ECLIC_Register_IRQ(vector, ECLIC_NON_VECTOR_INTERRUPT,
                            ECLIC_LEVEL_TRIGGER, INTLEVEL, INTPRIORITY, (void*)handler);
-#endif
         irq_desc[vector].handler = (rt_isr_handler_t)handler;
         irq_desc[vector].param = param;
 #ifdef RT_USING_INTERRUPT_INFO

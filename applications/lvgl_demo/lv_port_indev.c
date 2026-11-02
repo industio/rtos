@@ -15,33 +15,62 @@
 static touch_event_t glte = {0};
 static lv_disp_rot_t rot = LV_DISP_ROT_NONE;
 static struct rt_touchpanel_block lvgl_touch_block;
-#ifndef RT_USING_LVGL9
-static lv_indev_drv_t indev_drv;
-#endif
-static lv_indev_t *indev;
+
+static void lv_port_indev_touch_event(rt_int16_t x, rt_int16_t y, rt_uint8_t state)
+{
+    switch (state)
+    {
+    case TOUCH_EVENT_UP:
+        glte.down = RT_FALSE;
+        break;
+    case TOUCH_EVENT_DOWN:
+        glte.x = x;
+        glte.y = y;
+        glte.down = RT_TRUE;
+        break;
+    case TOUCH_EVENT_MOVE:
+        glte.x = x;
+        glte.y = y;
+        break;
+    }
+
+    if (glte.x < 0) glte.x = 0;
+    if (glte.x >= LV_HOR_RES) glte.x = LV_HOR_RES - 1;
+    if (glte.y < 0) glte.y = 0;
+    if (glte.y >= LV_VER_RES) glte.y = LV_VER_RES - 1;
+}
 
 static void touchpad_init(void)
 {
     rt_memset(&glte, 0x0, sizeof(glte));
 }
 
-#ifdef RT_USING_LVGL9
-static void touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
-#else
 static void touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
-#endif
 {
     data->point.x = glte.x;
     data->point.y = glte.y;
     data->state = glte.down ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
 }
 
+/*Return true is the touchpad is pressed*/
+static bool touchpad_is_pressed(void)
+{
+    return glte.down ? true : false;
+}
+
+/*Get the x and y coordinates if the touchpad is pressed*/
+static void touchpad_get_xy(lv_coord_t *x, lv_coord_t *y)
+{
+    (*x) = glte.x;
+    (*y) = glte.y;
+}
+
 static rt_err_t lv_port_touch_cb(struct rt_touch_data *point, rt_uint8_t num)
 {
     struct rt_touch_data *p = &point[0];
     struct rt_touchpanel_block *b = &lvgl_touch_block;
-    rt_int16_t x = 0, y = 0;
-    rt_uint32_t range_x, range_y;
+    rt_int16_t tmp;
+    rt_int16_t x, y;
 
     if (RT_EOK != rt_touchpoint_is_valid(p, b))
     {
@@ -89,25 +118,11 @@ static rt_err_t lv_port_touch_cb(struct rt_touch_data *point, rt_uint8_t num)
             glte.x = LV_HOR_RES - y;
             glte.y = x;
             break;
-        default:
-            break;
         }
     }
     //printf("%s [%d %d] -> [%d %d]\n", __func__, x, y, glte.x, glte.y);
 
     //TODO: dispatch the touch event.
-    rt_touchpoint_get_range(&range_x, &range_y);
-    if ((rot == LV_DISP_ROT_90) || (rot == LV_DISP_ROT_270))
-    {
-        glte.x = (rt_uint32_t)glte.x * LV_HOR_RES / range_y;
-        glte.y = (rt_uint32_t)glte.y * LV_VER_RES / range_x;
-    }
-    else
-    {
-        glte.x = (rt_uint32_t)glte.x * LV_HOR_RES / range_x;
-        glte.y = (rt_uint32_t)glte.y * LV_VER_RES / range_y;
-    }
-
     if (glte.x < 0) glte.x = 0;
     if (glte.x >= LV_HOR_RES) glte.x = LV_HOR_RES - 1;
     if (glte.y < 0) glte.y = 0;
@@ -124,7 +139,7 @@ static void lv_port_touch_block_init(struct rt_touchpanel_block *block)
     block->y = 0;
 
     if ((rot == LV_DISP_ROT_90) ||
-            (rot == LV_DISP_ROT_270))
+        (rot == LV_DISP_ROT_270))
     {
         block->w = LVGL_FB_HEIGHT;
         block->h = LVGL_FB_WIDTH;
@@ -143,19 +158,15 @@ static void lv_port_touch_block_init(struct rt_touchpanel_block *block)
 void lv_port_indev_init(lv_disp_rot_t rotate)
 {
 #ifdef RT_USING_TOUCH_DRIVERS
+    static lv_indev_drv_t indev_drv;
+
     rot = rotate;
     touchpad_init();
 
-#ifdef RT_USING_LVGL9
-    indev = lv_indev_create();
-    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev, touchpad_read);
-#else
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = touchpad_read;
-    indev = lv_indev_drv_register(&indev_drv);
-#endif
+    lv_indev_drv_register(&indev_drv);
 
     lv_port_touch_block_init(&lvgl_touch_block);
     rt_touchpanel_block_register(&lvgl_touch_block);
@@ -165,7 +176,6 @@ void lv_port_indev_init(lv_disp_rot_t rotate)
 void lv_port_indev_deinit(void)
 {
 #ifdef RT_USING_TOUCH_DRIVERS
-    lv_indev_delete(indev);
     rt_touchpanel_block_unregister(&lvgl_touch_block);
 #endif
 }

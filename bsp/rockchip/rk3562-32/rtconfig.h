@@ -8,7 +8,7 @@
 
 #define RT_USING_CORE_RTTHREAD
 #define RT_NAME_MAX 8
-#define RT_USING_SMP
+/*#define RT_USING_SMP*/
 #define RT_CPUS_NR 4
 #define RT_ALIGN_SIZE 4
 #define RT_THREAD_PRIORITY_32
@@ -49,7 +49,7 @@
 #define RT_USING_DEVICE
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
-#define RT_CONSOLE_DEVICE_NAME "uart0"
+#define RT_CONSOLE_DEVICE_NAME "uart9"
 #define RT_VER_NUM 0x40101
 #define ARCH_ARM
 #define RT_USING_CPU_FFS
@@ -192,7 +192,7 @@
 /* Enable UART */
 
 #define RT_USING_UART
-#define RT_USING_UART0
+#define RT_USING_UART9
 
 /* RT-Thread bsp test case */
 

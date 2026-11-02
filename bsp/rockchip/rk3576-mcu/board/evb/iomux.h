@@ -1,16 +1,22 @@
-/*
- * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Change Logs:
- * Date           Author       Notes
- * 2021-04-12     Steven Liu   first implementation
- */
+/**
+  * Copyright (c) 2019 Fuzhou Rockchip Electronics Co., Ltd
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  ******************************************************************************
+  * @file    iomux.h
+  * @version V0.1
+  * @brief   iomux for rk3576 mcu evb board
+  *
+  * Change Logs:
+  * Date           Author          Notes
+  * 2020-10-15     Cliff.Chen      first implementation
+  *
+  ******************************************************************************
+  */
 
-#ifndef __IOMUX_H__
-#define __IOMUX_H__
+#ifndef __BOARD_IOMUX_H__
+#define __BOARD_IOMUX_H__
 
-#include "iomux_base.h"
+void rt_hw_iomux_config(void);
 
 #endif

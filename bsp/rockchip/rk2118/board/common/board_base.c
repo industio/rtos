@@ -152,11 +152,6 @@ static const struct rk_pvtm_config dsp0_pvtm_cfg =
     .temp_prop = {300, 300},
 };
 
-static const struct rk_opp_otp dsp0_opp_otp =
-{
-    .opp_info_offset = 44,
-};
-
 static const struct rk_pvtm_table dsp0_pvtm_tbl[] =
 {
     {.value = 0,    .sel = 0},
@@ -187,7 +182,6 @@ struct rk_opp_table g_opp_table[] =
         .num_opps = HAL_ARRAY_SIZE(dsp0_opps),
         .pvtm_cfg = &dsp0_pvtm_cfg,
         .pvtm_tbl = dsp0_pvtm_tbl,
-        .otp = &dsp0_opp_otp,
         .clk_id = CLK_DSP0,
         .pvtm_sel = UINT_MAX,
         .set_reg_volt = set_vdd_dsp0_volt,
@@ -250,17 +244,11 @@ static const struct rk_pvtm_table dsp0_pvtm_tbl[] =
 static const struct rk_opp_otp dsp0_opp_otp =
 {
     .pvt_len_offset = 42,
-    .opp_info_offset = 44,
 };
 
 static struct rk_opp dsp12_opps[] =
 {
     {.rate = 589824000, .volt = 950000},
-};
-
-static const struct rk_opp_otp dsp12_opp_otp =
-{
-    .opp_info_offset = 50,
 };
 
 struct rk_opp_table g_opp_table[] =
@@ -282,7 +270,6 @@ struct rk_opp_table g_opp_table[] =
         .name = "dsp12_opp_table",
         .opps = dsp12_opps,
         .num_opps = HAL_ARRAY_SIZE(dsp12_opps),
-        .otp = &dsp12_opp_otp,
         .clk_id = CLK_DSP1,
         .pwr_id = PWR_ID_CORE,
         .init_freq = 589824000,
@@ -351,15 +338,12 @@ RT_WEAK void mpu_init(void)
     ARM_MPU_SetMemAttr(3, ARM_MPU_ATTR(ARM_MPU_ATTR_NON_CACHEABLE, ARM_MPU_ATTR_NON_CACHEABLE));
 #endif
 #ifdef RK2118_CPU_CORE0
-#ifdef RT_USING_DDR
-    /* ext memory section: non shared, rw, np, exec, cachable */
+    /* ddr section: non shared, rw, np, exec, cachable */
     ARM_MPU_SetRegion(4, ARM_MPU_RBAR((rt_uint32_t)__ext_mem_start__, 0U, 0U, 1U, 0U), ARM_MPU_RLAR((rt_uint32_t)__ext_mem_end__, 4U));
     ARM_MPU_SetMemAttr(4, ARM_MPU_ATTR(ARM_MPU_ATTR_MEMORY_(1, 1, 1, 0), ARM_MPU_ATTR_MEMORY_(1, 1, 1, 0)));
-#endif
-    /* spi2adb buffer: non shared, rw, np, exec */
+    /* spi2adb buffer: non shared, rw, np, exec, cachable */
     ARM_MPU_SetRegion(5, ARM_MPU_RBAR((rt_uint32_t)__spi2apb_buffer_start__, 0U, 0U, 1U, 0U), ARM_MPU_RLAR((rt_uint32_t)__spi2apb_buffer_end__, 5U));
-    /* uncachable normal memory */ /* TO DO:ARM_MPU_ATTR_MEMORY_(1, 1, 1, 0) */
-    ARM_MPU_SetMemAttr(5, ARM_MPU_ATTR(ARM_MPU_ATTR_NON_CACHEABLE, ARM_MPU_ATTR_NON_CACHEABLE));
+    ARM_MPU_SetMemAttr(5, ARM_MPU_ATTR(ARM_MPU_ATTR_MEMORY_(1, 1, 1, 0), ARM_MPU_ATTR_MEMORY_(1, 1, 1, 0)));
 #endif
 
     ARM_MPU_Enable(MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_HFNMIENA_Msk);
@@ -379,9 +363,9 @@ RT_WEAK struct ep_id g_usb_ep_pool[] =
 };
 #endif
 
-extern const rt_uint32_t __sram_heap_start__[];
+extern const rt_uint32_t __sram_heap_begin__[];
 extern const rt_uint32_t __sram_heap_end__[];
-extern const rt_uint32_t __ddr_heap_start__[];
+extern const rt_uint32_t __ddr_heap_begin__[];
 extern const rt_uint32_t __ddr_heap_end__[];
 extern const rt_uint32_t __uncache_heap_start__[];
 extern const rt_uint32_t __uncache_heap_end__[];
@@ -394,16 +378,16 @@ void rt_memory_heap_init(void)
 {
 #ifdef RK2118_CPU_CORE0
     /* system heap in sram for cpu0 */
-    rt_system_heap_init((void *)__sram_heap_start__, (void *)__sram_heap_end__);
+    rt_system_heap_init((void *)__sram_heap_begin__, (void *)__sram_heap_end__);
 #ifdef RT_USING_DDR
-    rt_memheap_init(&ddr_heap, "ddr", (void *)__ddr_heap_start__, (rt_base_t)__ddr_heap_end__ - (rt_base_t)__ddr_heap_start__);
+    rt_memheap_init(&ddr_heap, "ddr", (void *)__ddr_heap_begin__, (rt_base_t)__ddr_heap_end__ - (rt_base_t)__ddr_heap_begin__);
 #endif
 #ifdef RT_USING_UNCACHE_HEAP
     rt_uncache_heap_init((void *)__uncache_heap_start__, (void *)__uncache_heap_end__);
 #endif
 #else
     /* system heap in ddr for cpu1 */
-    rt_system_heap_init((void *)__ddr_heap_start__, (void *)__ddr_heap_end__);
+    rt_system_heap_init((void *)__ddr_heap_begin__, (void *)__ddr_heap_end__);
 #endif
 }
 
@@ -455,69 +439,6 @@ RT_WEAK void usb_phy_init(void)
     /* Set Eye-height to 437.5mV */
     WRITE_REG(*(uint32_t *)(USB_INNO_PHY_BASE + 0x0124U), 0x10);
 #endif
-#endif
-}
-
-#ifdef RT_USING_NOHZ
-static uint32_t save_reload = 0;
-static bool tick_reduce = false;
-static rt_tick_t save_tick = 0;
-static uint64_t save_wall_count = 0;
-
-static void rt_enter_nohz(void)
-{
-    rt_base_t level;
-    rt_tick_t n_tick;
-    uint32_t n_reload;
-
-    // if next timeout tick has redundance, reduce tick when enter wfi
-    level = rt_hw_interrupt_disable();
-    n_tick = rt_timer_next_timeout_tick();
-    if (n_tick > (rt_tick_get() + 1))
-    {
-        save_reload = SysTick->LOAD;
-        if (n_tick == RT_TICK_MAX)
-            n_reload = n_tick;
-        else
-            n_reload = save_reload * (n_tick - rt_tick_get());
-        save_tick = rt_tick_get();
-        save_wall_count = HAL_GetSysTimerCount();
-        HAL_SYSTICK_Config(n_reload);
-        tick_reduce = true;
-    }
-    rt_hw_interrupt_enable(level);
-}
-
-static void rt_leave_nohz(void)
-{
-    uint64_t curr_wall_count;
-    rt_tick_t new_tick;
-
-    // resume tick reload
-    if (tick_reduce)
-    {
-        curr_wall_count = HAL_GetSysTimerCount();
-        new_tick = save_tick + ((curr_wall_count - save_wall_count) / save_reload);
-        rt_tick_set(new_tick);
-        HAL_SYSTICK_Config(save_reload);
-        tick_reduce = false;
-    }
-}
-#endif /* end of RT_USING_NOHZ */
-
-static void rt_idle_wfi(void)
-{
-#ifdef RT_USING_NOHZ
-    rt_enter_nohz();
-#endif
-    __WFI();
-}
-
-void rt_hw_idle_hook_init(void)
-{
-    rt_thread_idle_sethook(rt_idle_wfi);
-#ifdef RT_USING_NOHZ
-    rt_interrupt_enter_sethook(rt_leave_nohz);
 #endif
 }
 
@@ -575,8 +496,6 @@ RT_WEAK void rt_hw_board_init()
 #ifdef RT_USING_SWO_PRINTF
     rt_console_set_output_hook(swo_console_hook);
 #endif
-
-    rt_hw_idle_hook_init();
 
     /* Call components board initial (use INIT_BOARD_EXPORT()) */
 #ifdef RT_USING_COMPONENTS_INIT

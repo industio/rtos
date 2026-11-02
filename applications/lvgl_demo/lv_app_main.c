@@ -5,11 +5,13 @@
  *
 */
 
-#include <rtthread.h>
 #include "lv_app_main.h"
 #include "lv_port_disp.h"
 #include "lv_port_indev.h"
 #include "lv_port_fs.h"
+#if defined(RT_LV_DEMO_MUSIC) || defined(RT_LV_DEMO_BENCHMARK)
+#include "lv_demos.h"
+#endif
 
 #define NUMBER(x)       NUMBER_(x)
 #define NUMBER_(x)       #x
@@ -19,16 +21,14 @@
 
 static void lvgl_task(void *arg)
 {
+    uint32_t event;
+    rt_err_t ret = RT_EOK;
+
     rt_size_t total, used, maxm;
     rt_memory_info(&total, &used, &maxm);
-    rt_kprintf("sram total=%d, used=%d, maxm=%d\n", total, used, maxm);
+    printf("sram total=%d, used=%d, maxm=%d\n", total, used, maxm);
 
     lv_init();
-
-#ifdef RT_USING_LVGL9
-    lv_tick_set_cb(rt_tick_get);
-    lv_delay_set_cb(rt_thread_mdelay);
-#endif
 
 #ifdef RT_USING_RKADK
     lv_port_disp_init(LV_DISP_ROT_90);
@@ -42,14 +42,12 @@ static void lvgl_task(void *arg)
     lv_port_fs_init();
 #endif
 
-    rt_kprintf("\n Welcome to the LVGL v" MAJOR "." MINOR "." PATCH "\n");
+    printf("\n Welcome to the LVGL v" MAJOR "." MINOR "." PATCH "\n");
 
 #ifdef RT_LV_DEMO_MUSIC
     lv_demo_music();
 #elif defined(RT_LV_DEMO_BENCHMARK)
     lv_demo_benchmark();
-#elif defined(RT_LV_DEMO_WIDGETS)
-    lv_demo_widgets();
 #elif defined(RT_LV_RK_DEMO)
     lv_rk_demo();
 #endif

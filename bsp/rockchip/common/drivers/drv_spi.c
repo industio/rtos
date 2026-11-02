@@ -31,7 +31,7 @@
 #include <rtthread.h>
 #include <rtdevice.h>
 
-#if defined(RT_USING_SPI) && (defined(RT_USING_SPI0) || defined(RT_USING_SPI1) || defined(RT_USING_SPI2) || defined(RT_USING_SPI3))
+#if defined(RT_USING_SPI) && (defined(RT_USING_SPI0) || defined(RT_USING_SPI1) || defined(RT_USING_SPI2))
 
 #include "hal_base.h"
 #include "drv_clock.h"
@@ -118,7 +118,6 @@ struct rockchip_spi
     struct rt_mutex spi_lock;
     struct clk_gate *pclk_gate;
     struct clk_gate *sclk_gate;
-    struct spi_board *board;
 
     /* status */
     rt_int32_t error;
@@ -137,19 +136,11 @@ struct rockchip_spi
 
     /* Free loop */
     struct rt_spi_message message;
-    int (*freeloop_cb)(void *param, int32_t pos); /**< @pos Current position in DMA. */
+    int (*freeloop_cb)(void *param, int32_t pos);
     void *freeloop_param;
     enum rk_spi_ext_freeloop_type freeloop_type;
     int32_t pos;
 };
-
-static rt_err_t rt_spi_set_slave_ready(struct rt_spi_ready_gpio *ready_gpio)
-{
-    HAL_GPIO_SetPinLevel(ready_gpio->gpio, ready_gpio->pin, GPIO_LOW);
-    HAL_GPIO_SetPinLevel(ready_gpio->gpio, ready_gpio->pin, GPIO_HIGH);
-
-    return RT_EOK;
-}
 
 /**
  * rockchip_spi_irq - spi irq handler
@@ -172,8 +163,6 @@ static void rockchip_spi_irq(struct rockchip_spi *spi)
             rt_device_control(spi->dma, RT_DEVICE_CTRL_DMA_GET_POSITION, &spi->rx_dma_xfer);
             pos = spi->rx_dma_xfer.position;
             spi->freeloop_cb(spi->freeloop_param, pos);
-            if (spi->board->ready.gpio)
-                rt_spi_set_slave_ready(&spi->board->ready);
         }
         else
         {
@@ -210,8 +199,6 @@ static void rockchip_spi_irq(struct rockchip_spi *spi)
         HAL_SPI_DmaTransfer(pSPI);
         rt_device_control(spi->dma, RT_DEVICE_CTRL_DMA_START, &spi->rx_dma_xfer);
         rt_device_control(spi->dma, RT_DEVICE_CTRL_DMA_START, &spi->tx_dma_xfer);
-        if (spi->board->ready.gpio)
-            rt_spi_set_slave_ready(&spi->board->ready);
     }
 
     /* leave interrupt */
@@ -776,8 +763,6 @@ static rt_uint32_t rockchip_spi_xfer(struct rt_spi_device *device, struct rt_spi
             HAL_SPI_DmaTransfer(pSPI);
             rt_hw_interrupt_umask(spi->hal_dev->irqNum);
 
-            if (spi->board->ready.gpio)
-                rt_spi_set_slave_ready(&spi->board->ready);
 #if (SPI_DEBUG == 2)
             spi_err(&spi->bus.parent, "slave xfer ready in dma\n");
 #endif
@@ -812,8 +797,6 @@ static rt_uint32_t rockchip_spi_xfer(struct rt_spi_device *device, struct rt_spi
             }
             rt_hw_interrupt_umask(spi->hal_dev->irqNum);
 
-            if (spi->board->ready.gpio)
-                rt_spi_set_slave_ready(&spi->board->ready);
 #if (SPI_DEBUG == 2)
             spi_err(&spi->bus.parent, "slave xfer ready in it\n");
 #endif
@@ -924,16 +907,12 @@ static rt_err_t rockchip_spi_probe(struct rockchip_spi *spi, char *bus_name)
                                                                                                       \
 static void rockchip_spi##ID##_irq(int irq, void *param);                                             \
                                                                                                       \
-                                                                                                      \
-RT_WEAK struct spi_board g_spi##ID##_board;                                                           \
-                                                                                                      \
 static struct rockchip_spi s_spi##ID =                                                                \
 {                                                                                                     \
-    .hal_dev = &g_spi##ID##Dev,                                                                       \
+    .hal_dev = &g_spi##ID##Dev,                                                                         \
     .isr = (void *)&rockchip_spi##ID##_irq,                                                           \
     .rt_spi_cs[0].pin = ROCKCHIP_SPI_CS_0,                                                            \
     .rt_spi_cs[1].pin = ROCKCHIP_SPI_CS_1,                                                            \
-    .board = &g_spi##ID##_board,                                                                      \
 };                                                                                                    \
                                                                                                       \
 static void rockchip_spi##ID##_irq(int irq, void *param)                                              \
@@ -953,21 +932,7 @@ DEFINE_ROCKCHIP_SPI(1)
 DEFINE_ROCKCHIP_SPI(2)
 #endif
 
-#ifdef RT_USING_SPI3
-DEFINE_ROCKCHIP_SPI(3)
-#endif
 
-/**
- * Start RK SPI freeloop transmition.
- * @device: RT SPI device.
- * @callback: The callback interface for completing a transmission.
- * @param: The callback parameter.
- * @tx_buf: The tx buffer.
- * @rx_buf: The rx buffer.
- * @length: The transmition length.
- * @type: Freeloop Implementation Scheme.
- * @return: return error code
- */
 rt_err_t rk_spi_ext_freeloop_start(struct rt_spi_device *device,
                                    void *callback, void *param,
                                    char *tx_buf, char *rx_buf, uint32_t length,
@@ -1010,11 +975,6 @@ rt_err_t rk_spi_ext_freeloop_start(struct rt_spi_device *device,
         return -RT_EIO;
 }
 
-/**
- * Stop RK SPI freeloop transmition.
- * @device: RT SPI device.
- * @return: return error code
- */
 rt_err_t rk_spi_ext_freeloop_stop(struct rt_spi_device *device)
 {
     struct rockchip_spi *spi = device->bus->parent.user_data;
@@ -1052,10 +1012,6 @@ int rockchip_rt_hw_spi_init(void)
 
 #ifdef RT_USING_SPI2
     rockchip_spi_probe(&s_spi2, "spi2");
-#endif
-
-#ifdef RT_USING_SPI3
-    rockchip_spi_probe(&s_spi3, "spi3");
 #endif
 
 #ifdef RT_USING_SPI_PM_PERFORMANCE

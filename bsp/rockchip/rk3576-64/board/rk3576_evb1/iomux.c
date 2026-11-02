@@ -28,19 +28,8 @@ RT_WEAK void jtag_m0_iomux_config(void)
  */
 void rt_hw_iomux_config(void)
 {
-#ifdef RT_USING_I2C
-#ifdef RT_USING_I2C0
-    i2c0_m1_iomux_config();
-#endif
-#ifdef RT_USING_I2C1
-    i2c1_m0_iomux_config();
-#endif
-#endif
 
 #ifdef RT_USING_UART
-#ifdef RT_USING_UART0
-    uart0_m0_iomux_config();
-#endif
 #ifdef RT_USING_UART5
     uart5_m2_iomux_config();
 #endif

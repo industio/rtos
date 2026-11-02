@@ -69,22 +69,8 @@ config RT_USING_I2C6
     depends on RT_USING_I2C
     default n
 
-config RT_USING_I2C7
-    bool "Enable I2C7"
-    depends on RT_USING_I2C
-    default n
-
-config RT_USING_I2C8
-    bool "Enable I2C8"
-    depends on RT_USING_I2C
-    default n
-
 config RT_USING_TSADC
     bool "Enable TSADC"
-    default n
-
-config RT_USING_PERI_EN
-    bool "Enable PERI_5V_EN"
     default n
 
 endmenu

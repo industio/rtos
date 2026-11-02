@@ -19,10 +19,6 @@ config RKMCU_RK2116
     bool
     default y
 
-config SMODE_RTOS
-    bool "Enable RISC-V S-Mode RT-THREAD"
-    default n
-
 source "$RTT_DIR/Kconfig"
 
 menuconfig RT_USING_PKGS

@@ -7,10 +7,6 @@ CONFIG_ARCH_ARM_CORTEX_M33=y
 CONFIG_RKMCU_RK2118=y
 # CONFIG_RK2118_CPU_CORE0 is not set
 CONFIG_RK2118_CPU_CORE1=y
-# CONFIG_CPU_RUN_IN_XIP is not set
-# CONFIG_CPU_RUN_IN_SRAM is not set
-CONFIG_CPU_RUN_IN_DDR=y
-# CONFIG_ARCH_ARM_CORTEX_SECURE is not set
 
 #
 # RT-Thread Kernel
@@ -229,7 +225,6 @@ CONFIG_PKG_CMBACKTRACE_PLATFORM_M33=y
 CONFIG_PKG_CMBACKTRACE_DUMP_STACK=y
 CONFIG_PKG_CMBACKTRACE_PRINT_ENGLISH=y
 # CONFIG_PKG_CMBACKTRACE_PRINT_CHINESE is not set
-# CONFIG_PKG_CMBACKTRACE_FAULT_DUMP_TO_FLASH is not set
 # CONFIG_RT_USING_RT_LINK is not set
 # CONFIG_RT_USING_VBUS is not set
 # CONFIG_RT_USING_AUPIPE is not set
@@ -246,66 +241,16 @@ CONFIG_RT_USING_LINPACK=y
 # CONFIG_RT_USING_PI_CSS5 is not set
 # CONFIG_RT_USING_WHETSTONE is not set
 # CONFIG_RT_USING_OTA is not set
-# CONFIG_RT_USING_NEW_OTA is not set
 
 #
 # System
 #
 # CONFIG_RT_USING_LVGL is not set
-# CONFIG_RT_USING_FREETYPE is not set
 
 #
 # RT-Thread Utestcases
 #
 # CONFIG_RT_USING_UTESTCASES is not set
-
-#
-# RT-Thread third party package
-#
-# CONFIG_PKG_CMSIS_RTOS2 is not set
-# CONFIG_RT_USING_WLAN_WICED is not set
-# CONFIG_RT_USING_NETUTILS is not set
-
-#
-# Bluetooth
-#
-# CONFIG_BT_ENABLED is not set
-
-#
-# examples bluetooth
-#
-
-#
-# Bluetooth examlpes
-#
-
-#
-# Example 'BT API TEST' Config
-#
-# CONFIG_BT_API_TEST is not set
-
-#
-# Example 'BT DISCOVERY' Config
-#
-# CONFIG_BT_DISCOVERY_EXAMPLES is not set
-
-#
-# Example 'A2DP SINK' Config
-#
-# CONFIG_A2DP_SINK_EXAMPLE is not set
-
-#
-# Example 'A2DP SOURCE' Config 
-#
-# CONFIG_A2DP_SOURCE_EXAMPLE is not set
-
-#
-# Example 'HFP CLIENT' Config
-#
-# CONFIG_HFP_CLIENT_EXAMPLE is not set
-# CONFIG_RT_USING_CYPRESS is not set
-# CONFIG_RT_USING_AMPAK is not set
-# CONFIG_RT_USING_WFD is not set
 # CONFIG_RT_USING_PKGS is not set
 
 #
@@ -330,23 +275,12 @@ CONFIG_RT_USING_CACHE=y
 # Enable Fault Dump Hook
 #
 # CONFIG_RT_USNING_FAULT_DUMP_HOOK is not set
-# CONFIG_RT_USING_RK_ATAGS is not set
-
-#
-# RT-Thread rockchip inno-mipi-dphy driver
-#
-# CONFIG_RT_USING_INNO_MIPI_DPHY is not set
 # CONFIG_RT_USING_SNOR is not set
 
 #
 # RT-Thread rockchip jpeg enc driver
 #
 # CONFIG_RT_USING_JPEG_ENC is not set
-
-#
-# RT-Thread rockchip rga driver
-#
-# CONFIG_RT_USING_RGA is not set
 
 #
 # RT-Thread rockchip pm drivers
@@ -399,8 +333,6 @@ CONFIG_RT_USING_CACHE=y
 #
 # CONFIG_RT_USING_BUFFER_MANAGE is not set
 # CONFIG_RT_USING_HDMI_SWITCH_DRIVERS is not set
-# CONFIG_RT_USING_LED_TUBE is not set
-# CONFIG_RT_USING_LEDS is not set
 # CONFIG_RT_USING_SENSOR_HUB is not set
 # CONFIG_RT_USING_QPIPSRAM is not set
 
@@ -423,20 +355,16 @@ CONFIG_RT_USING_CACHE=y
 # Enable FTL
 #
 # CONFIG_RT_USING_FTL is not set
-# CONFIG_RT_USING_MULTIMEDIA is not set
+
+#
+# RT-Thread rockchip USB Host driver
+#
 
 #
 # RT-Thread rockchip RK2118 drivers
 #
 CONFIG_RT_USING_CRU=y
 # CONFIG_RT_USING_DMA is not set
-
-#
-# Enable GMAC
-#
-# CONFIG_RT_USING_GMAC is not set
-# CONFIG_RT_USING_OPP is not set
-# CONFIG_RT_USING_OTP is not set
 # CONFIG_RT_USING_SARADC is not set
 CONFIG_RT_USING_SYSTICK=y
 # CONFIG_RT_USING_TSADC is not set
@@ -451,8 +379,6 @@ CONFIG_RT_USING_UART0=y
 # CONFIG_RT_USING_UART2 is not set
 # CONFIG_RT_USING_UART3 is not set
 # CONFIG_RT_USING_DISPLAY is not set
-# CONFIG_RT_USING_RKNPU is not set
-# CONFIG_RT_USING_NPOR is not set
 
 #
 # RT-Thread board config
@@ -461,14 +387,12 @@ CONFIG_RT_USING_UART0=y
 # CONFIG_RT_USING_CLK_CONFIG0 is not set
 # CONFIG_RT_USING_CLK_CONFIG1 is not set
 CONFIG_RT_USING_CLK_CONFIG2=y
-# CONFIG_RT_USING_NOHZ is not set
 CONFIG_RT_USING_DDR=y
 # CONFIG_RT_USING_BOARD_FPGA is not set
 # CONFIG_RT_USING_BOARD_ADSP_DEMO is not set
 # CONFIG_RT_USING_BOARD_IOTEST is not set
 # CONFIG_RT_USING_BOARD_SOUNDBAR_CORE is not set
 # CONFIG_RT_USING_BOARD_EVB is not set
-# CONFIG_RT_USING_BOARD_EVB1_V20 is not set
 CONFIG_RT_USING_BOARD_EVB3_V10=y
 # CONFIG_RT_USING_BOARD_TEST1 is not set
 # CONFIG_RT_USING_BOARD_AMP_DEMO is not set
@@ -484,28 +408,11 @@ CONFIG_RT_USING_HIFI4=y
 #
 # RK2118 rtt app
 #
-# CONFIG_RT_USING_RK_DMESG is not set
 # CONFIG_RT_USING_USB_PLAY_DEMO is not set
 # CONFIG_RT_USING_RKPLAYER_APP is not set
-# CONFIG_RT_USING_SYSTEM_APP is not set
-# CONFIG_RT_USING_RK_FSXN is not set
-# CONFIG_RT_USING_UAC_APP is not set
-# CONFIG_RT_USING_IO_RK2118 is not set
-# CONFIG_RT_USING_SPI2APB_SILENT_OTA is not set
 # CONFIG_RT_USING_RTT_CODECS is not set
-# CONFIG_RT_USING_RKSTUDIO_COMM is not set
-
-#
-# rkstudio config
-#
+CONFIG_RT_USING_RKSTUDIO=y
 CONFIG_RT_USING_RKSTUDIO_TUNING=y
-# CONFIG_ENABLE_RKSTUDIO_SERIAL_PORT is not set
-CONFIG_RT_READ_STUDIO_FILE_FROM_PARTITION=y
-# CONFIG_RT_READ_STUDIO_FILE_FROM_FILESYSTEM is not set
-# CONFIG_RT_USING_FWANALYSIS is not set
-# CONFIG_RT_USING_VENDOR_STORAGE is not set
-# CONFIG_RT_USING_USER_DATA_PART is not set
-# CONFIG_RT_USING_AVB_LIBAVB_AB is not set
 
 #
 # RT-Thread Common Test case
@@ -526,7 +433,6 @@ CONFIG_RT_USING_COMMON_MEMTESTER=y
 # CONFIG_RT_USING_COMMON_TEST_NVIC is not set
 # CONFIG_RT_USING_COMMON_TEST_PM is not set
 # CONFIG_RT_USING_COMMON_TEST_SNOR is not set
-# CONFIG_RT_USING_COMMON_TEST_SPI2APB_UPGRADE is not set
 # CONFIG_RT_USING_COMMON_STRESS_TEST is not set
 # CONFIG_RT_USING_COMMON_TEST_PERFORMANCE is not set
 # CONFIG_RT_USING_COMMON_TEST_TIMER is not set

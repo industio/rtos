@@ -12,9 +12,7 @@
 #include "rpmsg_env.h"
 
 #include "hal_base.h"
-#ifdef HAL_AP_CORE
 #include "interrupt.h"
-#endif
 
 #if defined(RL_USE_ENVIRONMENT_CONTEXT) && (RL_USE_ENVIRONMENT_CONTEXT == 1)
 #error "This RPMsg-Lite port requires RL_USE_ENVIRONMENT_CONTEXT set to 0"
@@ -232,10 +230,10 @@ int32_t platform_init_interrupt(uint32_t vector_id, void *isr_data)
             }
             HAL_MBOX_Init(rl_pMBox[3], RL_MBOX_B2A);
             mbox_cl[3] = &mbox_clr[3];
-            ret = HAL_MBOX_RegisterClient(rl_pMBox[3], 0, mbox_cl[3]);
-            if (ret)
-            {
-                printf("mbox remote client register failed, ret=%d\n", ret);
+            ret = HAL_MBOX_RegisterClient((rl_pMBox[3], 0, mbox_cl[3]);
+                                          if (ret)
+        {
+            printf("mbox remote client register failed, ret=%d\n", ret);
             }
         }
         register_count++;
@@ -272,6 +270,15 @@ void platform_notify(uint32_t vector_id)
     uint32_t link_id, timeout = 0;
     struct MBOX_CMD_DAT tx_msg;
     HAL_Status ret = HAL_ERROR;
+#ifdef RL_PLATFORM_USING_MBOX
+#ifndef HAL_AP_CORE
+    uint32_t ch_id;
+
+    /* MCU use MBOX CH3 */
+    ch_id = 3;
+#endif
+#endif /* RL_PLATFORM_USING_MBOX */
+
     link_id = RL_GET_LINK_ID(vector_id);
     tx_msg.CMD = link_id & 0xFFU;
     tx_msg.DATA = RL_RPMSG_MAGIC;
@@ -279,13 +286,17 @@ void platform_notify(uint32_t vector_id)
     env_lock_mutex(platform_lock);
 
     timeout = HAL_GetTick() + 500;  /* 500mS */
-    platform_cache_all_flush_invalidate();
 
     do
     {
 #ifdef RL_PLATFORM_USING_MBOX
+#ifdef HAL_AP_CORE
         /*master rvq:0 tvq:1 ; remote rvq:1 tvq:0*/
         ret = HAL_MBOX_SendMsg(RL_GET_Q_ID(vector_id) ? rl_pMBox[RL_GET_R_CPU_ID(vector_id)] : rl_pMBox[RL_GET_M_CPU_ID(vector_id)], 0, &tx_msg);
+#else
+        platform_cache_all_flush_invalidate();
+        ret = HAL_MBOX_SendMsg(rl_pMBox[3], ch_id, &tx_msg);
+#endif
 #endif /* RL_PLATFORM_USING_MBOX */
         if (ret == HAL_OK)
         {

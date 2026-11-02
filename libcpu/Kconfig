@@ -11,10 +11,6 @@ config RT_USING_CPU_FFS
     bool
     default n
 
-config RT_USING_IRQ_PREEMPT
-    bool
-    default n
-
 config ARCH_ARM_CORTEX_M
     bool
     select ARCH_ARM

@@ -42,11 +42,11 @@ static void flexbus_isr(int vector, void *param)
 
     isr = READ_REG(flexbus.hal_dev->pReg->ISR);
 
-    if (flexbus.hal_dev->opMode.opMode0 != FLEXBUS0_OPMODE_NULL && flexbus.fb0_isr != RT_NULL)
+    if (flexbus.hal_dev->opMode0 != FLEXBUS0_OPMODE_NULL && flexbus.fb0_isr != RT_NULL)
     {
         flexbus.fb0_isr(&flexbus, isr);
     }
-    if (flexbus.hal_dev->opMode.opMode1 != FLEXBUS1_OPMODE_NULL && flexbus.fb1_isr != RT_NULL)
+    if (flexbus.hal_dev->opMode1 != FLEXBUS1_OPMODE_NULL && flexbus.fb1_isr != RT_NULL)
     {
         flexbus.fb1_isr(&flexbus, isr);
     }
@@ -62,7 +62,8 @@ int rockchip_rt_hw_flexbus_init(void)
     rt_hw_interrupt_install(flexbus.hal_dev->irqNum, flexbus_isr, RT_NULL, RT_NULL);
     rt_hw_interrupt_umask(flexbus.hal_dev->irqNum);
 
-    HAL_FLEXBUS_Init(&flexbus.instance, flexbus.hal_dev->pReg, &flexbus.hal_dev->opMode);
+    HAL_FLEXBUS_Init(&flexbus.instance, flexbus.hal_dev->pReg,
+                     flexbus.hal_dev->opMode0, flexbus.hal_dev->opMode1);
 
     /* register flexbus device to RT-Thread */
     if (rt_device_register(&flexbus.parent, "flexbus", RT_DEVICE_OFLAG_OPEN) == RT_EOK)

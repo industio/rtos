@@ -8,8 +8,4 @@ config RT_USING_JTAG
     bool "Enable JTAG for debug"
     default n
 
-config RT_USING_32K_TICK_SRC
-    bool "Enable 32K SYSTICK source"
-    default n
-
 endmenu

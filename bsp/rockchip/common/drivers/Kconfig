@@ -600,18 +600,6 @@ menuconfig RT_USING_LED_TUBE
         default n
     endif
 
-menuconfig RT_USING_LEDS
-    bool "led driver config"
-    default n
-
-    if RT_USING_LEDS
-    source "$BSP_DIR/../common/drivers/leds/Kconfig"
-    endif
-
-menuconfig RT_USING_IOEXPANDER
-    bool "IoExpander driver config"
-    default n
-
 menuconfig RT_USING_TOUCH_DRIVERS
     bool "Touch drivers config"
     depends on RT_USING_TOUCH
@@ -1023,7 +1011,5 @@ if RT_USING_MULTIMEDIA
 
     endif
 endif
-
-source "$BSP_DIR/../common/drivers/Kconfig.spinorlist"
 
 endmenu

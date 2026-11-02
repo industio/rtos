@@ -114,19 +114,6 @@ RT_WEAK void i2c0_m0_iomux_config(void)
                          PIN_CONFIG_MUX_FUNC1);
 }
 #endif
-
-#ifdef RT_USING_I2C1
-/**
- * @brief  Config iomux for I2C1
- */
-RT_WEAK void i2c1_m0_iomux_config(void)
-{
-    HAL_PINCTRL_SetIOMUX(GPIO_BANK0,
-                         GPIO_PIN_B3 |
-                         GPIO_PIN_B4,
-                         PIN_CONFIG_MUX_FUNC1);
-}
-#endif
 #endif
 
 #ifdef RT_USING_SDIO

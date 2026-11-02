@@ -17,7 +17,7 @@ if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
 
 PLATFORM    = 'gcc'
-EXEC_PATH   = RTT_ROOT + '/../prebuilts/gcc/linux-x86/aarch64/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin/'
+EXEC_PATH   = RTT_ROOT + '/../toolchain/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin/'
 
 BUILD = 'release'
 

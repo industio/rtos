@@ -432,7 +432,7 @@ static void rpmsg_linux_test(void)
     remote_id = HAL_CPU_TOPOLOGY_GetCurrentCpuId();
     rt_kprintf("rpmsg remote: remote core cpu_id-%ld\n", remote_id);
 #else
-    remote_id = 3;
+    remote_id = 4;
 #endif
 
     info = malloc(sizeof(struct rpmsg_info_t));

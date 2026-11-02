@@ -10,7 +10,7 @@
 
 	images {
 		amp3 {
-			description  = "bare-mental-core3";
+			description  = "rtos-core3";
 			data         = /incbin/("rtt3.bin");
 			type         = "firmware";
 			compression  = "none";
@@ -30,6 +30,8 @@
     share_memory {
         base         = <0x07800000>;
         size         = <0x00400000>;
+		rpmsg_base 	 = <0x07C00000>;
+		rpmsg_size 	 = <0x00400000>;
     };
 
 	configurations {

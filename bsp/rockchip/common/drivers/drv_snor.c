@@ -134,13 +134,11 @@ static HAL_Status fspi_xfer(struct SNOR_HOST *spi, struct HAL_SPI_MEM_OP *op)
         {
             return ret;
         }
-#if !defined(CPU_RUN_IN_SRAM) && !defined(CPU_RUN_IN_DDR)
         if (!spiflash->irq_resumed)
         {
             rt_hw_interrupt_enable(spiflash->level);
             spiflash->irq_resumed = true;
         }
-#endif
 
         /*
          * When there is a chance for interrupt related code to be fully stored
@@ -158,13 +156,11 @@ static HAL_Status fspi_xfer(struct SNOR_HOST *spi, struct HAL_SPI_MEM_OP *op)
     }
     else
     {
-#if !defined(CPU_RUN_IN_SRAM) && !defined(CPU_RUN_IN_DDR)
         if (spiflash->irq_resumed)
         {
             spiflash->level = rt_hw_interrupt_disable();
             spiflash->irq_resumed = false;
         }
-#endif
         if (spiflash->xip_resumed)
         {
             rt_fspi_xip_config(fspi_device, NULL, false);
@@ -598,10 +594,8 @@ rt_err_t rk_snor_xip_suspend(void)
 
     if (spiflash->nor.spi->mode & HAL_SPI_XIP)
     {
-#if !defined(CPU_RUN_IN_SRAM) && !defined(CPU_RUN_IN_DDR)
         spiflash->level = rt_hw_interrupt_disable();
         spiflash->irq_resumed = false;
-#endif
         HAL_SNOR_XIPDisable(&spiflash->nor);
         spiflash->xip_resumed = false;
     }
@@ -625,13 +619,11 @@ rt_err_t rk_snor_xip_resume(void)
             HAL_SNOR_XIPEnable(&spiflash->nor);
             spiflash->xip_resumed = true;
         }
-#if !defined(CPU_RUN_IN_SRAM) && !defined(CPU_RUN_IN_DDR)
         if (!spiflash->irq_resumed)
         {
             rt_hw_interrupt_enable(spiflash->level);
             spiflash->irq_resumed = true;
         }
-#endif
     }
 #endif
 
@@ -774,8 +766,9 @@ static rt_err_t snor_mtd_erase_sector(struct rt_mtd_nor_device *dev, rt_off_t po
     struct spiflash_device *spiflash = MTD_TO_SPIFLASH(dev);
     struct SPI_NOR *nor = &spiflash->nor;
     int ret = RT_EOK;
+    uint32_t nsec = size / nor->sectorSize;
 
-    snor_dbg("%s pos = %08x, size = %08x\n", __func__, pos, size);
+    snor_dbg("%s pos = %08x,size = %08x\n", __func__, pos, size);
 
     RT_ASSERT(dev != RT_NULL);
     RT_ASSERT(size != 0);
@@ -788,7 +781,6 @@ static rt_err_t snor_mtd_erase_sector(struct rt_mtd_nor_device *dev, rt_off_t po
 
     rt_mutex_take(&spiflash->lock, RT_WAITING_FOREVER);
     rk_snor_xip_suspend();
-
     if (pos == 0 && size == nor->size)
     {
         ret = HAL_SNOR_Erase(nor, pos, ERASE_CHIP);
@@ -796,34 +788,19 @@ static rt_err_t snor_mtd_erase_sector(struct rt_mtd_nor_device *dev, rt_off_t po
         {
             ret = -RT_ERROR;
         }
+        nsec = 0;
     }
-    else
+    while (nsec)
     {
-        while (size > 0)
+        ret = HAL_SNOR_Erase(nor, pos, ERASE_SECTOR);
+        if (ret)
         {
-            if ((pos % 0x10000) == 0 && size >= 0x10000)
-            {
-                ret = HAL_SNOR_Erase(nor, pos, ERASE_BLOCK64K);
-                if (ret)
-                {
-                    ret = -RT_ERROR;
-                    break;
-                }
-                pos += 0x10000;
-                size -= 0x10000;
-            }
-            else
-            {
-                ret = HAL_SNOR_Erase(nor, pos, ERASE_SECTOR);
-                if (ret)
-                {
-                    ret = -RT_ERROR;
-                    break;
-                }
-                pos += nor->sectorSize;
-                size -= nor->sectorSize;
-            }
+            ret = -RT_ERROR;
+
+            break;
         }
+        nsec --;
+        pos += dev->block_size;
     }
     rk_snor_xip_resume();
     rt_mutex_release(&spiflash->lock);

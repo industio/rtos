@@ -303,9 +303,7 @@ wfdCreateWFDEGLImages(WFDDevice device_handle,
 		if (format == WFD_FORMAT_NV12)
 			img->planar_offsets[1] = strides[0] * height;
 
-#if defined(__RT_THREAD__)
-		img->vaddr = rt_malloc_align((size_t)img->size, CACHE_LINE_SIZE);
-#endif
+		img->vaddr = rt_malloc((size_t)img->size);
 		images[i] = img;
 
 		DEBUG1("%s img: %p %d x %d format: %d usage: 0x%x paddr:0x%"PRIx64"", __func__,  img, width, height, format, usage, img->paddr);
@@ -314,9 +312,7 @@ wfdCreateWFDEGLImages(WFDDevice device_handle,
 	if (i < count) {
 		for (--i; i >= 0; i--) {
 			img = images[i];
-#if defined(__RT_THREAD__)
 			rt_free(img->vaddr);
-#endif
 			free(img);
 			images[i] = NULL;
 		}
@@ -355,9 +351,7 @@ wfdDestroyWFDEGLImages(WFDDevice device_handle, WFDint count, WFDEGLImage *image
 
 		DEBUG1("%s paddr:0x%"PRIx64"", __func__, img->paddr);
 
-#if defined(__RT_THREAD__)
 		rt_free(img->vaddr);
-#endif
 		free(img);
 	}
 

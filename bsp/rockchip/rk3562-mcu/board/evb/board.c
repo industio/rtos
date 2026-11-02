@@ -145,7 +145,7 @@ int rt_hw_board_init(void)
     rt_hw_interrupt_umask(SysTick_IRQn);
     HAL_NVIC_SetPriority(SysTick_IRQn, NVIC_PERIPH_PRIO_LOWEST, NVIC_PERIPH_SUB_PRIO_LOWEST);
     HAL_SYSTICK_CLKSourceConfig(HAL_SYSTICK_CLKSRC_EXT);
-    HAL_SYSTICK_Config((PLL_INPUT_32K_RATE / RT_TICK_PER_SECOND) - 1);
+    HAL_SYSTICK_Config((PLL_INPUT_OSC_RATE / RT_TICK_PER_SECOND) - 1);
     HAL_SYSTICK_Enable();
 
 #ifdef RT_USING_CACHE

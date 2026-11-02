@@ -17,7 +17,7 @@
 #define HAL_BUS_MCU_CORE
 
 /* Cache maintain need the decoded addr, it must be matched with pre-loader */
-#define HAL_CACHE_DECODED_ADDR_BASE          0x47800000
+#define HAL_CACHE_DECODED_ADDR_BASE          0x48200000
 
 #define SYS_TIMER TIMER11 /* System timer designation (RK TIMER) */
 
@@ -57,8 +57,7 @@
 #ifdef RT_USING_PIN
 #define HAL_GPIO_MODULE_ENABLED
 #define HAL_PINCTRL_MODULE_ENABLED
-#define HAL_GPIO_VIRTUAL_MODEL_FEATURE_ENABLED
-#define HAL_GPIO_VIRTUAL_GROUP_USED 2 /* EXP2 */
+//#define HAL_GPIO_VIRTUAL_MODEL_FEATURE_ENABLED
 #endif
 
 #ifdef RT_USING_CRU

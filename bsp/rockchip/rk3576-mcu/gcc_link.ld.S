@@ -3,7 +3,7 @@
 MEMORY
 {
     DDR   (rxw) : ORIGIN = 0x00000000, LENGTH = 512K
-    LINUX_ATAGS (rxw) : ORIGIN = 0x20000000, LENGTH = 0x2000 /* shared memory for linux atags */
+    LINUX_SHARE_MEM (rxw) : ORIGIN = 0x20000000, LENGTH = 0x2000000 /* shared memory */
 }
 
 
@@ -172,11 +172,10 @@ SECTIONS
         PROVIDE(__StackTop = .);
     } > DDR
 
-    .linux_share_atags(NOLOAD) :
+    .linux_share_mem(NOLOAD):
     {
-        PROVIDE(__linux_share_atags_start__ = .);
-        . += LENGTH(LINUX_ATAGS);
-        PROVIDE(__linux_share_atags_end__ = .);
-    } > LINUX_ATAGS
-
+        PROVIDE(__linux_share_mem_start__ = .);
+        . += LENGTH(LINUX_SHARE_MEM);
+        PROVIDE(__linux_share_mem_end__ = .);
+    } > LINUX_SHARE_MEM
 }

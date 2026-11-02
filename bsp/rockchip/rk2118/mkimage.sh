@@ -61,7 +61,7 @@ IMAGE=$(pwd)/Image
 ../tools/sign_tool/bin/boot_merger ./Image/rk2118_ddr.ini
 ../tools/sign_tool/bin/boot_merger ./Image/rk2118_no_ddr.ini
 # Expand the rk2118_idb_no_ddr/rk2118_idb_ddr file to 64KB and make a backup copy
-#./package_idb.py Image/rk2118_idb_no_ddr.img
+./package_idb.py Image/rk2118_idb_no_ddr.img
 ./package_idb.py Image/rk2118_idb_ddr.img
 
 rm -rf $IMAGE/rtt*.img $IMAGE/Firmware*

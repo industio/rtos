@@ -7,14 +7,8 @@
 
 MEMORY
 {
-    /* the base addr & size of DRAM/UC_DRAM/SHMEM/LINUX_RPMSG must be align with 2M */
     SRAM  (rxw) : ORIGIN = 0x3FF80000, LENGTH = 512K             /* SYSTEM SRAM */
-#ifdef RT_USING_UNCACHE_HEAP
-    DRAM (rxw) : ORIGIN = FIRMWARE_BASE, LENGTH = DRAM_SIZE - RT_UNCACHE_HEAP_SIZE
-    UC_DRAM (rxw) : ORIGIN = FIRMWARE_BASE + DRAM_SIZE - RT_UNCACHE_HEAP_SIZE, LENGTH = RT_UNCACHE_HEAP_SIZE
-#else
-    DRAM (rxw) : ORIGIN = FIRMWARE_BASE, LENGTH = DRAM_SIZE
-#endif
+    DRAM  (rxw) : ORIGIN = FIRMWARE_BASE, LENGTH = DRAM_SIZE    /* DRAM */
     SHMEM (rxw) : ORIGIN = SHMEM_BASE, LENGTH = SHMEM_SIZE      /* shared memory for all cpu */
     LINUX_RPMSG (rxw) : ORIGIN = LINUX_RPMSG_BASE, LENGTH = LINUX_RPMSG_SIZE /* shared memory for linux rpmsg */
 }
@@ -181,25 +175,20 @@ SECTIONS
     {
         . = ALIGN(16);
         PROVIDE(__heap_begin = .);
+#ifdef RT_USING_UNCACHE_HEAP
+        . = ORIGIN(DRAM) + LENGTH(DRAM) - __STACK_SIZE - RT_UNCACHE_HEAP_SIZE;
+#else
         . = ORIGIN(DRAM) + LENGTH(DRAM) - __STACK_SIZE;
+#endif
         PROVIDE(__heap_end = .);
     } > DRAM
 
-    .stack (ORIGIN(DRAM) + LENGTH(DRAM) - __STACK_SIZE) (COPY):
-    {
-        . = ALIGN(16);
-        PROVIDE(__stack_limit = .);
-        . = . + __STACK_SIZE;
-        PROVIDE(__stack_top = .);
-    } > DRAM
-
-#ifdef RT_USING_UNCACHE_HEAP
-    .uc_heap (NOLOAD):
-    {
-        PROVIDE(__uc_heap_begin = .);
-        . += RT_UNCACHE_HEAP_SIZE;
-        PROVIDE(__uc_heap_end = .);
-    } > UC_DRAM
-#endif
+   .stack (ORIGIN(DRAM) + LENGTH(DRAM) - __STACK_SIZE) (COPY):
+   {
+       . = ALIGN(16);
+       PROVIDE(__stack_limit = .);
+       . = . + __STACK_SIZE;
+       PROVIDE(__stack_top = .);
+   } > DRAM
 }
 

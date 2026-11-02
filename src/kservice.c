@@ -1337,12 +1337,10 @@ RT_WEAK int rt_kprintf(const char *fmt, ...)
         length = RT_CONSOLEBUF_SIZE - 1;
 
     if (console_output_hook) {
-        /* length equal zero is mean the hook want you keep going */
-        if (console_output_hook(rt_log_buf, 0) != 0)
-            goto out;
+        console_output_hook(rt_log_buf, 0);
     }
 
-#ifdef RT_USING_SMP
+#ifdef RT_USING_SMP    
     rt_spin_lock(&_print_lock);
 #endif
 
@@ -1385,7 +1383,6 @@ RT_WEAK int rt_kprintf(const char *fmt, ...)
     rt_spin_unlock(&_print_lock);
 #endif
 
-out:
     va_end(args);
 
     return length;

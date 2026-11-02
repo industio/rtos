@@ -79,10 +79,10 @@
 #define ATAG_MAX        0x544100ff
 
 #ifdef __RT_THREAD__
-extern u32 __linux_share_atags_start__[];
-extern u32 __linux_share_atags_end__[];
-#define ATAGS_LINUX_MEM_BASE ((u32)&__linux_share_atags_start__)
-#define ATAGS_LINUX_MEM_END  ((u32)&__linux_share_atags_end__)
+extern u32 __linux_share_mem_start__[];
+extern u32 __linux_share_mem_end__[];
+#define ATAGS_LINUX_MEM_BASE ((u32)&__linux_share_mem_start__)
+#define ATAGS_LINUX_MEM_END  ((u32)&__linux_share_mem_end__)
 #endif
 
 /* Tag size and offset */

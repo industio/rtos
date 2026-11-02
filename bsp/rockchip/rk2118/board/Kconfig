@@ -19,10 +19,6 @@ choice
 
 endchoice
 
-config RT_USING_NOHZ
-    bool "No HZ in idle"
-    default n
-
 config RT_USING_DDR
     bool "using DRAM, only available for RK2118B or RK2118G"
     default n

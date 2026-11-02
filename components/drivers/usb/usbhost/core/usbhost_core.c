@@ -281,7 +281,6 @@ rt_err_t rt_usbh_detach_instance(uinst_t device)
             RT_ASSERT(device->intf[i]->device == device);
 
             RT_DEBUG_LOG(RT_DEBUG_USB, ("free interface instance %d\n", i));
-#if defined(RT_USBH_MSTORAGE)
             if (device->intf[i]->drv->class_code == USB_CLASS_MASS_STORAGE)
             {
                 ustor_t stor = (ustor_t)device->intf[i]->user_data;
@@ -292,7 +291,6 @@ rt_err_t rt_usbh_detach_instance(uinst_t device)
                     rt_completion_init(&device->intf[i]->intf_completion);
                 }
             }
-#endif
 
             rt_usbh_class_driver_disable(device->intf[i]->drv, (void*)device->intf[i]);
 
@@ -585,7 +583,6 @@ int rt_usb_hcd_pipe_xfer(uhcd_t hcd, upipe_t pipe, void* buffer, int nbytes, int
 {
     rt_size_t remain_size;
     rt_size_t send_size;
-    rt_size_t actual_size;
     remain_size = nbytes;
     rt_uint32_t maxpacket;
     rt_uint8_t * pbuffer = (rt_uint8_t *)buffer;
@@ -606,16 +603,14 @@ int rt_usb_hcd_pipe_xfer(uhcd_t hcd, upipe_t pipe, void* buffer, int nbytes, int
     {
         RT_DEBUG_LOG(RT_DEBUG_USB,("pipe transform remain size,: %d\n", remain_size));
         send_size = (remain_size > maxpacket) ? maxpacket : remain_size;
-        actual_size = hcd->ops->pipe_xfer(pipe, USBH_PID_DATA, pbuffer, send_size, timeout);
-        if(actual_size == send_size)
+        if(hcd->ops->pipe_xfer(pipe, USBH_PID_DATA, pbuffer, send_size, timeout) == send_size)
         {
             remain_size -= send_size;
             pbuffer += send_size;
         }
         else
         {
-            actual_size = (actual_size >= 0) ? (nbytes - remain_size + actual_size) : 0;
-            return actual_size;
+            return 0;
         }
     }while(remain_size > 0);
     return nbytes;

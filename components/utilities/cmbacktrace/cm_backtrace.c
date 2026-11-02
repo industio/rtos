@@ -624,7 +624,7 @@ static uint32_t statck_del_fpu_regs(uint32_t fault_handler_lr, uint32_t sp) {
 static char log_buf[PKG_CMBACKTRACE_DUMP_BUF_SIZE];
 static rt_device_t flash = RT_NULL;
 
-static int write_log_to_flash(const char *str, int flush)
+static void write_log_to_flash(const char *str, int flush)
 {
     static int log_buf_offset = 0, flash_pos = 0, flash_size = 0, sector_size = PKG_CMBACKTRACE_DUMP_BUF_SIZE;
     struct rt_device_blk_geometry stat;
@@ -719,7 +719,6 @@ exit:
         flash = RT_NULL;
     }
     rt_console_set_output_hook(hook);
-    return 0;
 }
 
 static void forward_log(void *parameter)

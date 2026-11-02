@@ -82,16 +82,12 @@
 #define HAL_UART_MODULE_ENABLED
 #endif
 
-#ifdef RT_USING_PCIE_EP
+#ifdef RT_USING_DW_PCIE
 #define HAL_PCIE_MODULE_ENABLED
 #endif
 
 #ifdef RT_USING_SDIO
 #define HAL_SDIO_MODULE_ENABLED
-#endif
-
-#ifdef RT_USING_SPI
-#define HAL_SPI_MODULE_ENABLED
 #endif
 
 #ifdef RT_USING_USBH_EHCI

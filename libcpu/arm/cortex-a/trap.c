@@ -16,9 +16,6 @@
 #include "interrupt.h"
 #include "backtrace.h"
 
-#define enable_irq()         __asm__ volatile("cpsie i");
-#define disable_irq()        __asm__ volatile("cpsid i");
-
 #if defined(RT_USING_FINSH) && defined(MSH_USING_BUILT_IN_COMMANDS)
 extern long list_thread(void);
 #endif
@@ -264,16 +261,8 @@ void rt_hw_trap_irq(void)
     {
         /* Interrupt for myself. */
         param = isr_table[ir].param;
-
-#ifdef RT_USING_IRQ_PREEMPT
-        enable_irq();
-#endif
         /* turn to interrupt service routine */
         isr_func(ir, param);
-
-#ifdef RT_USING_IRQ_PREEMPT
-        disable_irq();
-#endif
     }
 
     /* end of interrupt */

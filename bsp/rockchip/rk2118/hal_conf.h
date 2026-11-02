@@ -121,40 +121,6 @@
 #define HAL_FSPI_XIP_ENABLE
 #define HAL_SRAM_SECTION_ENABLED
 #endif
-#ifndef RT_SNOR_DEVICE_AUTOSELECT
-#define HAL_SNOR_SUPPORT_DEVICES_SELECT
-#ifdef RT_SNOR_GIGADEVICE
-#define HAL_SNOR_SUPPORT_GIGADEV
-#endif
-#ifdef RT_SNOR_EON
-#define HAL_SNOR_SUPPORT_EON
-#endif
-#ifdef RT_SNOR_FMSH
-#define HAL_SNOR_SUPPORT_FUDAN
-#endif
-#ifdef RT_SNOR_ISSI
-#define HAL_SNOR_SUPPORT_ISSI
-#endif
-#ifdef RT_SNOR_MACRONIX
-#define HAL_SNOR_SUPPORT_MXIC
-#endif
-#ifdef RT_SNOR_PUYA
-#define HAL_SNOR_SUPPORT_PUYA
-#endif
-#ifdef RT_SNOR_WINBOND
-#define HAL_SNOR_SUPPORT_WINBOND
-#endif
-#ifdef RT_SNOR_XMC
-#define HAL_SNOR_SUPPORT_XMC
-#endif
-#ifdef RT_SNOR_XTX
-#define HAL_SNOR_SUPPORT_XTX
-#endif
-#ifdef RT_SNOR_ZBIT
-#define HAL_SNOR_SUPPORT_ZBIT
-#endif
-#define HAL_SNOR_SUPPORT_HUAHONG
-#endif
 #endif
 
 #ifdef RT_USING_SPDIFRX

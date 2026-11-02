@@ -8,7 +8,6 @@
  * 2020/03/26     hqfang       First Nuclei RISC-V porting implementation
  */
 
-#include "rtconfig.h"
 #include "riscv_encoding.h"
 
 .section    .text.entry
@@ -21,8 +20,8 @@
  * \remarks
  *  - All the interrupt requests will be ignored by CPU.
  */
-.macro DISABLE_XIE
-    csrc CSR_XSTATUS, XSTATUS_XIE
+.macro DISABLE_MIE
+    csrc CSR_MSTATUS, MSTATUS_MIE
 .endm
 
 /**
@@ -35,7 +34,7 @@
 */
 /* Save caller registers */
 .macro SAVE_CONTEXT
-    csrrw sp, CSR_XSCRATCHCSWL, sp
+    csrrw sp, CSR_MSCRATCHCSWL, sp
     /* Allocate stack space for context saving */
 #ifndef __riscv_32e
     addi sp, sp, -20*REGBYTES
@@ -99,7 +98,7 @@
     /* De-allocate the stack space */
     addi sp, sp, 14*REGBYTES
 #endif /* __riscv_32e */
-    csrrw sp, CSR_XSCRATCHCSWL, sp
+    csrrw sp, CSR_MSCRATCHCSWL, sp
 .endm
 
 /**
@@ -109,13 +108,11 @@
  */
 .macro SAVE_CSR_CONTEXT
     /* Store CSR mcause to stack using pushmcause */
-    csrrwi  x0, CSR_PUSHXCAUSE, 11
+    csrrwi  x0, CSR_PUSHMCAUSE, 11
     /* Store CSR mepc to stack using pushmepc */
-    csrrwi  x0, CSR_PUSHXEPC, 12
-#ifndef SMODE_RTOS
+    csrrwi  x0, CSR_PUSHMEPC, 12
     /* Store CSR msub to stack using pushmsub */
     csrrwi  x0, CSR_PUSHMSUBM, 13
-#endif
 .endm
 
 /**
@@ -124,14 +121,12 @@
  * This macro restore MSUBM, MEPC, MCAUSE from stack.
  */
 .macro RESTORE_CSR_CONTEXT
-#ifndef SMODE_RTOS
     LOAD x5,  13*REGBYTES(sp)
-    csrw CSR_XSUBM, x5
-#endif
+    csrw CSR_MSUBM, x5
     LOAD x5,  12*REGBYTES(sp)
-    csrw CSR_XEPC, x5
+    csrw CSR_MEPC, x5
     LOAD x5,  11*REGBYTES(sp)
-    csrw CSR_XCAUSE, x5
+    csrw CSR_MCAUSE, x5
 .endm
 
 /**
@@ -146,13 +141,8 @@
 .section .text.trap
 /* In CLIC mode, the exeception entry must be 64bytes aligned */
 .align 6
-#ifdef SMODE_RTOS
-.global exc_entry_s
-exc_entry_s:
-#else
 .global exc_entry
 exc_entry:
-#endif
     /* Save the caller saving registers (context) */
     SAVE_CONTEXT
     /* Save the necessary CSR registers */
@@ -178,7 +168,7 @@ exc_entry:
     RESTORE_CONTEXT
 
     /* Return to regular code */
-    XRET
+    mret
 
 /**
  * \brief  Non-Vector Interrupt Entry
@@ -193,14 +183,9 @@ exc_entry:
 .section      .text.irq
 /* In CLIC mode, the interrupt entry must be 4bytes aligned */
 .align 2
-#ifdef SMODE_RTOS
-/* This label will be set to MTVT2 register */
-.global irq_entry_s
-irq_entry_s:
-#else
 .global irq_entry
+/* This label will be set to MTVT2 register */
 irq_entry:
-#endif
     /* Save the caller saving registers (context) */
     SAVE_CONTEXT
     /* Save the necessary CSR registers */
@@ -215,13 +200,13 @@ irq_entry:
     /*
      * Fix for rt-thread interrupt framework
      */
-    csrr a0, CSR_XCAUSE
-    csrr a1, CSR_XEPC
+    csrr a0, mcause
+    csrr a1, mepc
     mv a2, s0
     call handle_trap
 
     /* Critical section with interrupts disabled */
-    DISABLE_XIE
+    DISABLE_MIE
 
     /* Restore the necessary CSR registers */
     RESTORE_CSR_CONTEXT
@@ -229,7 +214,7 @@ irq_entry:
     RESTORE_CONTEXT
 
     /* Return to regular code */
-    XRET
+    mret
 
 /* Default Handler for Exceptions / Interrupts */
 .global default_intexc_handler

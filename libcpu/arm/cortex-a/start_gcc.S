@@ -289,18 +289,7 @@ vector_irq:
     mov r8, r0
 
     bl      rt_interrupt_enter
-
-#ifdef RT_USING_IRQ_PREEMPT
-    msr     cpsr_c, #Mode_SVC|I_Bit
-    mov     sp, r8
-#endif
-
     bl      rt_hw_trap_irq
-
-#ifdef RT_USING_IRQ_PREEMPT
-    msr     cpsr_c, #Mode_IRQ|I_Bit
-#endif
-
     bl      rt_interrupt_leave
 
     cps     #Mode_SVC
@@ -314,23 +303,7 @@ vector_irq:
     stmfd   sp!, {r0-r12,lr}
 
     bl      rt_interrupt_enter
-
-#ifdef RT_USING_IRQ_PREEMPT
-    mrs     lr, spsr
-    stmfd   sp!, {lr}
-    msr     cpsr_c, #Mode_SVC|I_Bit
-    stmfd   sp!, {r0-r12,lr}
-#endif
-
     bl      rt_hw_trap_irq
-
-#ifdef RT_USING_IRQ_PREEMPT
-    ldmfd   sp!, {r0-r12,lr}
-    msr     cpsr_c, #Mode_IRQ|I_Bit
-    ldmfd   sp!, {lr}
-    msr     spsr, lr
-#endif
-
     bl      rt_interrupt_leave
 
     @ if rt_thread_switch_interrupt_flag set, jump to

@@ -317,10 +317,8 @@ int snd_pcm_plugin_unloads(snd_pcm_t *pcm, void *args)
     return 0;
 }
 
-int snd_pcm_plugin_controls(snd_pcm_t *pcm, uint32 cmd, int stream, void *args)
+int snd_pcm_plugin_controls(snd_pcm_t *pcm, uint32 cmd, void *args)
 {
-    int ret = 0;
-
     switch (cmd)
     {
     case RK_AUDIO_CTL_PLUGIN_PREPARE:
@@ -328,9 +326,6 @@ int snd_pcm_plugin_controls(snd_pcm_t *pcm, uint32 cmd, int stream, void *args)
         break;
     case RK_AUDIO_CTL_PLUGIN_RELEASE:
         snd_pcm_plugin_unloads(pcm, args);
-        break;
-    case RK_AUDIO_CTL_PLUGIN_HW:
-        ret = pcm->plugin_ops->hw_params(pcm, stream, (struct AUDIO_PARAMS *)args);
         break;
     case RK_AUDIO_CTL_PLUGIN_SET_SOFTVOL:
         snd_pcm_plugin_softvol_set_volume(pcm, args);
@@ -342,7 +337,7 @@ int snd_pcm_plugin_controls(snd_pcm_t *pcm, uint32 cmd, int stream, void *args)
         break;
     }
 
-    return ret;
+    return 0;
 }
 
 #endif /* CONFIG_DRIVER_AUDIO_PCM_PLUGIN */

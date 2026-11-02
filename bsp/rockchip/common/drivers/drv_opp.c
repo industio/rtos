@@ -151,7 +151,7 @@ static void opp_adjust_pvt_config(struct rk_opp_table *opp_table)
             {
                 opp_table->opps[i].len += opp_table->volt_delta_len;
             }
-            else if (opp_table->pvtm_sel < opp_table->typical_sel)
+            else if (opp_table->pvtm_sel <= opp_table->typical_sel)
             {
                 delta_sel -= opp_table->typical_sel;
                 delta_len = delta_sel * opp_table->pvtm_cfg->len_step;
@@ -170,7 +170,7 @@ static void opp_adjust_pvt_config(struct rk_opp_table *opp_table)
     }
 }
 
-static void opp_adjust_volt_by_sel(struct rk_opp_table *opp_table)
+static void opp_adjust_volt(struct rk_opp_table *opp_table)
 {
     uint32_t target_volt = 0, delta_sel = 0, delta_volt = 0;
     uint32_t i = 0;
@@ -184,7 +184,7 @@ static void opp_adjust_volt_by_sel(struct rk_opp_table *opp_table)
     {
         if (!opp_table->opps[i].volt)
             continue;
-        if (opp_table->pvtm_sel < opp_table->typical_sel)
+        if (opp_table->pvtm_sel <= opp_table->typical_sel)
             continue;
         delta_sel = opp_table->pvtm_sel - opp_table->typical_sel;
         delta_volt = delta_sel * opp_table->pvtm_cfg->volt_step;
@@ -202,32 +202,9 @@ static void opp_adjust_volt_by_sel(struct rk_opp_table *opp_table)
     }
 }
 
-static void opp_adjust_volt_by_otp(struct rk_opp_table *opp_table)
-{
-    uint32_t i = 0;
-    uint32_t opp_rate, otp_volt;
-
-    if (!opp_table->otp_opp_info || !opp_table->otp_opp_info->volt)
-        return;
-
-    for (i = 0; i < opp_table->num_opps; i++)
-    {
-        if (!opp_table->opps[i].volt)
-            continue;
-        opp_rate = opp_table->opps[i].rate / 1000000;
-        if (opp_rate >= opp_table->otp_opp_info->min_freq &&
-                opp_rate <= opp_table->otp_opp_info->max_freq)
-        {
-            otp_volt = opp_table->otp_opp_info->volt * 1000;
-            opp_table->opps[i].volt += otp_volt;
-        }
-    }
-}
-
 rt_err_t opp_init_pvt_config(struct rk_opp_table *opp_table)
 {
     uint8_t otp_length = 0;
-    uint32_t opp_rate;
     uint32_t i;
 
     if (!opp_table)
@@ -247,46 +224,13 @@ rt_err_t opp_init_pvt_config(struct rk_opp_table *opp_table)
                 otp_length -= 1;
         }
     }
-    if (opp_table->otp && opp_table->otp->opp_info_offset)
-    {
-        opp_table->otp_opp_info = rt_malloc(sizeof(struct rk_otp_opp_info));
-        if (opp_table->otp_opp_info)
-        {
-            if (otp_read(opp_table->otp->opp_info_offset,
-                         sizeof(struct rk_otp_opp_info),
-                         (uint8_t *)opp_table->otp_opp_info) != RT_EOK)
-            {
-                rt_kprintf("failed to read otp opp info\n");
-            }
-            else
-            {
-                rt_kprintf("%s min=%uM max=%uM volt=%umV length=%u\n",
-                           opp_table->name,
-                           opp_table->otp_opp_info->min_freq,
-                           opp_table->otp_opp_info->max_freq,
-                           opp_table->otp_opp_info->volt,
-                           opp_table->otp_opp_info->length);
-            }
-        }
-    }
-
 #endif
 
     for (i = 0; i < opp_table->num_opps; i++)
     {
         if (!opp_table->opps[i].len)
             continue;
-        if (otp_length)
-            opp_table->opps[i].len += otp_length;
-        if (opp_table->otp_opp_info && opp_table->otp_opp_info->length)
-        {
-            opp_rate = opp_table->opps[i].rate / 1000000;
-            if (opp_rate >= opp_table->otp_opp_info->min_freq &&
-                    opp_rate <= opp_table->otp_opp_info->max_freq)
-            {
-                opp_table->opps[i].len += opp_table->otp_opp_info->length;
-            }
-        }
+        opp_table->opps[i].len += otp_length;
         opp_set_pvt_config(opp_table->clk_id, opp_table->opps[i].rate,
                            opp_table->opps[i].len);
     }
@@ -381,8 +325,7 @@ static rt_err_t opp_get_pvtm_sel(struct rk_opp_table *opp_table)
 
 static void opp_adjust_opp_table(struct rk_opp_table *opp_table)
 {
-    opp_adjust_volt_by_sel(opp_table);
-    opp_adjust_volt_by_otp(opp_table);
+    opp_adjust_volt(opp_table);
     opp_adjust_pvt_config(opp_table);
 }
 

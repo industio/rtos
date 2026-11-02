@@ -60,7 +60,7 @@ elif rtconfig.PLATFORM == 'armcc': # Keil AC5
 
 CPPDEFINES = ['LV_KCONFIG_IGNORE']
 
-group = group + DefineGroup('LVGL', src, depend = ['RT_USING_LVGL8'], CPPPATH = inc, LOCAL_CFLAGS = LOCAL_CFLAGS, CPPDEFINES = CPPDEFINES)
+group = group + DefineGroup('LVGL', src, depend = ['RT_USING_LVGL'], CPPPATH = inc, LOCAL_CFLAGS = LOCAL_CFLAGS, CPPDEFINES = CPPDEFINES)
 
 list = os.listdir(cwd)
 for d in list:

@@ -40,4 +40,4 @@ case $1 in
     *) usage; exit ;;
 esac
 
-#./mkimage.sh
+./mkimage.sh

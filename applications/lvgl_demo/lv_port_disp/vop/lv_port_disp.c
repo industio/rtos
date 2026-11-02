@@ -33,14 +33,10 @@ typedef struct
     rt_device_t bl;
 
     struct rt_device_graphic_info *dgi;
-    lv_disp_t * disp;
-#ifndef RT_USING_LVGL9
-	lv_disp_drv_t disp_drv;
     lv_disp_draw_buf_t disp_buf;
-#endif
-    void *fb;
-    void *buf_1;
-    void *buf_2;
+    lv_color_t *fb;
+    lv_color_t *buf_1;
+    lv_color_t *buf_2;
 
     struct CRTC_WIN_STATE *cfg;
     struct VOP_POST_SCALE_INFO *scale;
@@ -53,29 +49,22 @@ typedef struct
 } lv_disp_cntx_t;
 
 /* littlevGL Display device interface */
+lv_disp_drv_t disp_drv;
 lv_disp_cntx_t disp_ctx = {0};
 
 static void lv_bl_enable(bool enable)
 {
-    int brightness = 100;
-
     disp_ctx.bl = rt_device_find("backlight");
     if (!disp_ctx.bl)
     {
-        rt_kprintf("%s: get bl fail!\n", __FUNCTION__);
+        printf("%s: get bl fail!\n", __FUNCTION__);
         return;
     }
 
-    if (enable)
-    {
-        rt_kprintf("%s: turn on backlight\n", __FUNCTION__);
-        rt_device_control(disp_ctx.bl, RTGRAPHIC_CTRL_POWERON, NULL);
-        rt_device_control(disp_ctx.bl, RTGRAPHIC_CTRL_RECT_UPDATE, &brightness);
-    }
-    else {
-        rt_kprintf("%s: turn off backlight\n", __FUNCTION__);
-        rt_device_control(disp_ctx.bl, RTGRAPHIC_CTRL_POWERON, NULL);
-    }
+    int brightness = 100;
+    printf("%s: turn on backlight\n", __FUNCTION__);
+    rt_device_control(disp_ctx.bl, RTGRAPHIC_CTRL_POWERON, NULL);
+    rt_device_control(disp_ctx.bl, RTGRAPHIC_CTRL_RECT_UPDATE, &brightness);
 }
 
 void lv_disp_refer(void)
@@ -101,14 +90,12 @@ void lv_disp_refer(void)
         printf("rt_display_sync_hook time out\n");
 }
 
-#ifdef RT_USING_LVGL9
-static void lvgl_fb_flush(lv_disp_t *disp_drv, const lv_area_t *area, uint8_t *color_p)
-#else
 static void lvgl_fb_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
-#endif
 {
+    int32_t x;
     int32_t y;
     lv_coord_t w = (area->x2 - area->x1 + 1);
+    lv_coord_t h = (area->y2 - area->y1 + 1);
 
     /*Return if the area is out the screen*/
     if (area->x2 < 0) return;
@@ -119,9 +106,9 @@ static void lvgl_fb_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_col
     /* Copy area to disp_fb */
     for (y = area->y1; y <= area->y2; y++)
     {
-        uint8_t *disp = (uint8_t *)disp_ctx.fb + (y * disp_ctx.dgi->width + area->x1) * (LV_COLOR_DEPTH >> 3);
-        memcpy(disp, color_p, w * (LV_COLOR_DEPTH >> 3));
-        color_p = (uint8_t *)color_p + w * (LV_COLOR_DEPTH >> 3);
+        lv_color_t *disp = disp_ctx.fb + y * disp_ctx.dgi->width + area->x1;
+        memcpy(disp, color_p, w * sizeof(lv_color_t));
+        color_p += w;
     }
 
     if (lv_disp_flush_is_last(disp_drv))
@@ -256,13 +243,15 @@ static rt_err_t disp_init(void)
     RT_ASSERT(ret == RT_EOK);
 #endif
 
-    disp_ctx.buf_1 = (void *)RT_LV_DISP_BUF_MALLOC(disp_ctx.dgi->width * disp_ctx.dgi->height * (LV_COLOR_DEPTH >> 3));
+    disp_ctx.buf_1 = (lv_color_t *)RT_LV_DISP_BUF_MALLOC(disp_ctx.dgi->width * disp_ctx.dgi->height * sizeof(lv_color_t));
     RT_ASSERT(disp_ctx.buf_1 != RT_NULL);
 
 #ifdef RT_LV_DISP_DOUBLE_BUF
-    disp_ctx.buf_2 = (void *)RT_LV_DISP_BUF_MALLOC(disp_ctx.dgi->width * disp_ctx.dgi->height * (LV_COLOR_DEPTH >> 3));
+    disp_ctx.buf_2 = (lv_color_t *)RT_LV_DISP_BUF_MALLOC(disp_ctx.dgi->width * disp_ctx.dgi->height * sizeof(lv_color_t));
     RT_ASSERT(disp_ctx.buf_2 != RT_NULL);
 #endif
+
+    lv_disp_draw_buf_init(&disp_ctx.disp_buf, disp_ctx.buf_1, disp_ctx.buf_2, disp_ctx.dgi->width * disp_ctx.dgi->height);
 
     printf("lvgl buf1 = 0x%x, buf2 = 0x%x %d\n", (int)disp_ctx.buf_1, (int)disp_ctx.buf_2, disp_ctx.dgi->bits_per_pixel);
 
@@ -294,28 +283,16 @@ rt_err_t lv_port_disp_init(lv_disp_rot_t rotate_disp)
     ret = disp_init();
     RT_ASSERT(ret == RT_EOK);
 
-    disp_ctx.fb = (void *)RT_LV_DISP_BUF_MALLOC(disp_ctx.dgi->width * disp_ctx.dgi->height * (LV_COLOR_DEPTH >> 3));
+    lv_disp_drv_init(&disp_drv);
+
+    disp_ctx.fb = (lv_color_t *)RT_LV_DISP_BUF_MALLOC(disp_ctx.dgi->width * disp_ctx.dgi->height * sizeof(lv_color_t));
     RT_ASSERT(disp_ctx.fb != RT_NULL);
 
-#ifdef RT_USING_LVGL9
-    lv_disp_t * disp;
-    disp = lv_display_create(disp_ctx.dgi->width, disp_ctx.dgi->height);
-    lv_display_set_flush_cb(disp, lvgl_fb_flush);
-    lv_display_set_buffers(disp, disp_ctx.buf_1, disp_ctx.buf_2,
-                           disp_ctx.dgi->width * disp_ctx.dgi->height * (LV_COLOR_DEPTH >> 3),
-                           LV_DISPLAY_RENDER_MODE_PARTIAL);
-    lv_display_set_color_format(disp, LV_COLOR_FORMAT_NATIVE_WITH_ALPHA);
-	disp_ctx.disp = disp;
-#else
-    lv_disp_drv_init(&disp_ctx.disp_drv);
-    lv_disp_draw_buf_init(&disp_ctx.disp_buf, disp_ctx.buf_1, disp_ctx.buf_2, disp_ctx.dgi->width * disp_ctx.dgi->height);
-
-    disp_ctx.disp_drv.hor_res = disp_ctx.dgi->width;
-    disp_ctx.disp_drv.ver_res = disp_ctx.dgi->height;
-    disp_ctx.disp_drv.draw_buf = &disp_ctx.disp_buf;
-    disp_ctx.disp_drv.flush_cb = lvgl_fb_flush;
-    disp_ctx.disp = lv_disp_drv_register(&disp_ctx.disp_drv);
-#endif
+    disp_drv.hor_res = disp_ctx.dgi->width;
+    disp_drv.ver_res = disp_ctx.dgi->height;
+    disp_drv.draw_buf = &disp_ctx.disp_buf;
+    disp_drv.flush_cb = lvgl_fb_flush;
+    lv_disp_drv_register(&disp_drv);
 
     return RT_EOK;
 }
@@ -341,8 +318,6 @@ rt_err_t lv_port_disp_deinit(void)
         RT_LV_DISP_BUF_FREE(disp_ctx.fb);
         disp_ctx.fb = RT_NULL;
     }
-
-	lv_disp_remove(disp_ctx.disp);
 
     ret = rt_device_close(disp_ctx.lcd);
     RT_ASSERT(ret == RT_EOK);

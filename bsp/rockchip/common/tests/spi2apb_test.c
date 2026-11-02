@@ -25,7 +25,10 @@
 
 #include "spi2apb_flash_obj.h"
 
+#ifdef RT_USING_COMMON_TEST_SPI2APB_FLASH_OBJ
+
 // #define SLV_DEBUG
+
 #ifdef SLV_DEBUG
 #define slv_dbg(...)     rt_kprintf(__VA_ARGS__)
 #else
@@ -38,13 +41,11 @@
 #error "Please define SPI2APB_CS0_PIN for cs irq function!"
 #endif
 
-struct rt_spi_device *spi2apb_device = RT_NULL;
 extern uint32_t __spi2apb_buffer_start__[];
 #define SRAM_SPI2APB_BASE (uint32_t)__spi2apb_buffer_start__
 #define SRAM_TEST_BUFFER_SIZE 0x40
 
-#ifdef RT_USING_COMMON_TEST_SPI2APB_FLASH_OBJ
-
+rt_device_t spi2apb_device = RT_NULL;
 struct rt_mtd_nor_device *snor_device = RT_NULL;
 struct rt_workqueue *isr_workqueue;
 struct rt_work isr_work;
@@ -59,7 +60,7 @@ rt_err_t spi_test_spi2apb_flash_obj_set_status(rt_uint8_t index, rt_uint8_t stat
     packet.item.index = index;
     packet.item.status = status & 0xff;
     packet.item.reserved = 0;
-    ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_WRITE_REG2, &packet.d32);
+    ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_WRITE_REG2, &packet.d32);
     if (ret)
     {
         rt_kprintf("spi2apb test write reg2 failed.\n");
@@ -128,7 +129,7 @@ static void spi_test_spi2apb_flash_obj_work(struct rt_work *work, void *work_dat
 {
     spi2apb_flash_obj_packet packet;
 
-    rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_READ_REG1, (void *)&packet.d32);
+    rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_READ_REG1, (void *)&packet.d32);
 
     slv_dbg("cmd=0x%x index=0x%x addr=0x%x\n", packet.item.cmd, packet.item.index, packet.item.addr);
     switch (packet.item.cmd)
@@ -168,7 +169,7 @@ rt_err_t spi_test_spi2apb_flash_obj_init(void)
     isr_workqueue = rt_workqueue_create("flash_obj_workqueue", 1024, 5);
     rt_work_init(&isr_work, spi_test_spi2apb_flash_obj_work, NULL);
 
-    ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_REGISTER_CB,
+    ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_REGISTER_CB,
                             (void *)spi_test_spi2apb_flash_obj_callback);
     if (ret)
     {
@@ -182,8 +183,6 @@ rt_err_t spi_test_spi2apb_flash_obj_init(void)
 
     return spi_test_spi2apb_flash_obj_set_status(0, SPI2APB_FLASH_OBJ_SLAVE_IDLE);
 }
-
-#endif
 
 static void spi2apb_cs_gpio_irq_callback(void *args)
 {
@@ -207,6 +206,7 @@ int spi2apb_test_cs_gpio_irq(rt_base_t pin)
 
     return 0;
 }
+#endif
 
 void spi2apb_test_callback(rt_uint32_t value)
 {
@@ -216,73 +216,81 @@ void spi2apb_test_callback(rt_uint32_t value)
 void spi2apb_test_show_usage()
 {
     rt_kprintf("spi2apb_test cmd demo as following:\n\n");
-    rt_kprintf("spi2apb_test config spi2apb <mode> <is_msb>\n");
+    /* config spi2apb mode polarity */
+    rt_kprintf("spi2apb_test config spi2apb 1 2\n");
+    /* register spi2apb callback */
     rt_kprintf("spi2apb_test cb spi2apb\n");
-    rt_kprintf("spi2apb_test read spi2apb <reg_index>\n");
+    /* config spi2apb read reg0 */
+    rt_kprintf("spi2apb_test read spi2apb 0\n");
+    /* config spi2apb read reg1 */
+    rt_kprintf("spi2apb_test read spi2apb 1\n");
+    /* config spi2apb query status */
     rt_kprintf("spi2apb_test query spi2apb\n");
-    rt_kprintf("spi2apb_test write spi2apb <data>\n");
+    /* config spi2apb write reg2 value */
+    rt_kprintf("spi2apb_test write spi2apb 0x500\n");
+    /* initial spi2apb flash object */
     rt_kprintf("spi2apb_test flash_obj spi2apb\n");
-    rt_kprintf("like:\n");
-    rt_kprintf("\tspi2apb_test config spi2apb 0 1\n");
-    rt_kprintf("\tspi2apb_test cb spi2apb\n");
-    rt_kprintf("\tspi2apb_test read spi2apb 0\n");
-    rt_kprintf("\tspi2apb_test query spi2apb\n");
-    rt_kprintf("\tspi2apb_test write spi2apb 0x500\n");
-    rt_kprintf("\tspi2apb_test flash_obj spi2apb\n");
 }
 
 void spi2apb_test(int argc, char **argv)
 {
+    struct rt_spi2apb_configuration config;
     rt_err_t ret;
     char *cmd;
     int value = 0;
 
     if (argc < 3)
-    {
-        spi2apb_test_show_usage();
-        return;
-    }
+        goto out;
 
-    spi2apb_device = (struct rt_spi_device *)rt_device_find(argv[2]);
+    spi2apb_device = rt_device_find(argv[2]);
     RT_ASSERT(spi2apb_device != RT_NULL);
 
-    ret = rt_spi_take_bus(spi2apb_device);
-    if (ret)
-    {
-        rt_kprintf("spi2apb take buf failed\n");
-        return;
-    }
+    ret = rt_device_open(spi2apb_device, RT_DEVICE_FLAG_RDWR);
+    RT_ASSERT(ret == RT_EOK);
 
     cmd = argv[1];
 
     if (!rt_strcmp(cmd, "config"))
     {
-        struct rt_spi_configuration cfg = { 0 };
-        int32_t mode, is_msb;
+        int mode, polarity;
 
+        rt_memset(&config, 0, sizeof(struct rt_spi2apb_configuration));
         mode = atoi(argv[3]);
-        is_msb = atoi(argv[4]);
-
-        cfg.mode = mode & 0x3;
-        if (is_msb)
-            cfg.mode |= RT_SPI_MSB;
+        if (mode & RT_CONFIG_SPI2APB_MSB)
+            config.mode |= RT_CONFIG_SPI2APB_MSB;
         else
-            cfg.mode |= RT_SPI_LSB;
+            config.mode |= RT_CONFIG_SPI2APB_LSB;
 
-        cfg.reserved = RK_SPI_RESERVED_LITTLE_ENDIAN;
+        if (mode & RT_CONFIG_SPI2APB_BIG_ENDIAN)
+            config.mode |= RT_CONFIG_SPI2APB_BIG_ENDIAN;
+        else
+            config.mode |= RT_CONFIG_SPI2APB_LITTLE_ENDIAN;
 
-        ret = rt_spi_configure(spi2apb_device, &cfg);
+        polarity = atoi(argv[4]) << 2;
+        if (polarity & RT_CONFIG_SPI2APB_RXCP_INVERT)
+            config.clock_polarity |= RT_CONFIG_SPI2APB_RXCP_INVERT;
+        else
+            config.clock_polarity |= RT_CONFIG_SPI2APB_RXCP;
+
+        if (polarity & RT_CONFIG_SPI2APB_TXCP_INVERT)
+            config.clock_polarity |= RT_CONFIG_SPI2APB_TXCP_INVERT;
+        else
+            config.clock_polarity |= RT_CONFIG_SPI2APB_TXCP;
+
+        ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_CONFIGURATION,
+                                (void *)&config);
         if (ret)
         {
             rt_kprintf("spi2apb test config failed\n");
-            goto out;
+            return;
         }
 
-        rt_kprintf("spi2apb config mode%d, is_msb=%d\n", mode, is_msb);
+        rt_kprintf("spi2apb config mode: 0x%x, polarity: 0x%x\n",
+                   config.mode, config.clock_polarity >> 2);
     }
     else if (!rt_strcmp(cmd, "cb"))
     {
-        ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_REGISTER_CB,
+        ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_REGISTER_CB,
                                 (void *)spi2apb_test_callback);
         if (ret)
             rt_kprintf("spi2apb test register callback failed\n");
@@ -293,27 +301,27 @@ void spi2apb_test(int argc, char **argv)
 
         reg = atoi(argv[3]);
         if (reg)
-            ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_READ_REG1,
+            ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_READ_REG1,
                                     (void *)&value);
         else
-            ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_READ_REG0,
+            ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_READ_REG0,
                                     (void *)&value);
         if (ret)
         {
             rt_kprintf("spi2apb test read reg%d failed\n", (reg) ? 1 : 0);
-            goto out;
+            return;
         }
 
         rt_kprintf("read reg%d value: 0x%x\n", (reg) ? 1 : 0, value);
     }
     else if (!rt_strcmp(cmd, "query"))
     {
-        ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_QUERY_STATUS,
+        ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_QUERY_STATUS,
                                 (void *)&value);
         if (ret)
         {
             rt_kprintf("spi2apb test query status failed\n");
-            goto out;
+            return;
         }
 
         rt_kprintf("query state: 0x%x\n", value);
@@ -321,12 +329,12 @@ void spi2apb_test(int argc, char **argv)
     else if (!rt_strcmp(cmd, "write"))
     {
         sscanf(argv[3], "%x", &value);
-        ret = rt_device_control(&spi2apb_device->bus->parent, RT_DEVICE_CTRL_SPI2APB_WRITE_REG2,
+        ret = rt_device_control(spi2apb_device, RT_DEVICE_CTRL_SPI2APB_WRITE_REG2,
                                 (void *)&value);
         if (ret)
         {
             rt_kprintf("spi2apb test write reg2 failed.\n");
-            goto out;
+            return;
         }
     }
     else if (!rt_strcmp(cmd, "cs_gpio_irq"))
@@ -340,21 +348,23 @@ void spi2apb_test(int argc, char **argv)
         if (ret)
         {
             rt_kprintf("flash_obj initital failed\n");
-            goto out;
+            return;
         }
-        goto out;
+        return;
 #else
         rt_kprintf("please define RT_USING_COMMON_TEST_SPI2APB_FLASH_OBJ firstly\n");
-        goto out;
+        return;
 #endif
     }
     else
     {
-        spi2apb_test_show_usage();
+        goto out;
     }
 
+    return;
+
 out:
-    rt_spi_release_bus(spi2apb_device);
+    spi2apb_test_show_usage();
     return;
 }
 

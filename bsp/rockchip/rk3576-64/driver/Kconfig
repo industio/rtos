@@ -56,51 +56,6 @@ menu "Enable GMAC"
     endif
 endmenu
 
-if RT_USING_I2C
-menu "Enable I2C"
-    config RT_USING_I2C0
-        bool "Enable I2C0"
-        default n
-
-    config RT_USING_I2C1
-        bool "Enable I2C1"
-        default n
-
-    config RT_USING_I2C2
-        bool "Enable I2C2"
-        default n
-
-    config RT_USING_I2C3
-        bool "Enable I2C3"
-        default n
-
-    config RT_USING_I2C4
-        bool "Enable I2C4"
-        default n
-
-    config RT_USING_I2C5
-        bool "Enable I2C5"
-        default n
-
-    config RT_USING_I2C6
-        bool "Enable I2C6"
-        default n
-
-    config RT_USING_I2C7
-        bool "Enable I2C7"
-        default n
-
-    config RT_USING_I2C8
-        bool "Enable I2C8"
-        default n
-
-    config RT_USING_I2C9
-        bool "Enable I2C9"
-        default n
-
-endmenu
-endif
-
 config RT_USING_PMU
     bool "Enable PMU"
     default y

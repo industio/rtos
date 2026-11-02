@@ -60,10 +60,6 @@ static void flexbus_dac_isr(struct flexbus_dev *flexbus, rt_uint32_t isr)
     HAL_Status ret;
 
     ret = HAL_FLEXBUS_DAC_Isr(pFBDAC, isr);
-    if (ret == HAL_INVAL)
-    {
-        return;
-    }
 
     if (pFBDAC->continueMode)
     {
@@ -84,7 +80,6 @@ static rt_err_t flexbus_dac_write_raw(struct rt_dac_device *device, rt_uint32_t 
     struct flexbus_dac_dev *flexbus_dac = device->parent.user_data;
     struct FLEXBUS_DAC_HANDLE *pFBDAC = &flexbus_dac->instance;
     rt_uint16_t *pBuf;
-    rt_uint32_t val_mask;
     rt_err_t ret;
 
     rt_mutex_take(&flexbus_dac->lock, RT_WAITING_FOREVER);
@@ -95,9 +90,20 @@ static rt_err_t flexbus_dac_write_raw(struct rt_dac_device *device, rt_uint32_t 
         goto err_mutex_release;
     }
 
-    val_mask = HAL_BIT(pFBDAC->dfs) - 1;
     pBuf = pFBDAC->pSrcBuf0;
-    pBuf[0] = *value & val_mask;
+    switch (pFBDAC->dfs)
+    {
+    case 4:
+        pBuf[0] = *value & 0xf;
+        break;
+    case 8:
+        pBuf[0] = *value & 0xff;
+        break;
+    case 16:
+    default:
+        pBuf[0] = *value & 0xffff;
+        break;
+    }
     rt_hw_cpu_dcache_ops(RT_HW_CACHE_FLUSH, pFBDAC->pSrcBuf0,
                          HAL_DIV_ROUND_UP(HAL_FLEXBUS_MIN_TX_NUM_OF_DFS_MIN * pFBDAC->dfs, 8));
 
@@ -142,17 +148,14 @@ static int rockchip_flexbus_dac_init(void)
 
     pFB = &flexbus->instance;
     pFBDAC = &flexbus_dac.instance;
-    if (pFB->pOpMode->opMode0 != FLEXBUS0_OPMODE_DAC)
+    if (pFB->opMode0 != FLEXBUS0_OPMODE_DAC)
     {
         LOG_E("%s failed! opMode0 mismatch!\n", __func__);
         return -RT_EINVAL;
     }
 
 #if defined(RT_USING_CRU)
-    if (flexbus->hal_dev->txclkID != CLK_INVALID)
-    {
-        clk_set_rate(flexbus->hal_dev->txclkID, HAL_MIN(pFBDAC->rate * 2, HAL_FLEXBUS_MAX_TX_RATE));
-    }
+    clk_set_rate(flexbus->hal_dev->txclkID, HAL_MIN(pFBDAC->rate * 2, HAL_FLEXBUS_MAX_TX_RATE));
 #endif
 
     if (HAL_FLEXBUS_DAC_Init(pFBDAC, pFB) != HAL_OK)

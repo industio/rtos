@@ -434,7 +434,7 @@ int arm_gic_cpu_init(rt_uint32_t index, rt_uint32_t cpu_base)
     _gic_table[index].cpu_hw_base = cpu_base;
 
     GIC_CPU_PRIMASK(cpu_base) = 0xf0U;
-    GIC_CPU_BINPOINT(cpu_base) = 0x0U;
+    GIC_CPU_BINPOINT(cpu_base) = 0x7U;
     /* Enable CPU interrupt */
     GIC_CPU_CTRL(cpu_base) = 0x01U;
 

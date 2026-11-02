@@ -49,7 +49,7 @@ struct disp_buffer
 
 struct disp_dev
 {
-    void *fb;
+    lv_color_t *fb;
     RKADK_MW_PTR ui_ptr;
     lv_disp_rot_t rot;
     MB_BLK draw_buf_blk;
@@ -58,12 +58,6 @@ struct disp_dev
     MB_POOL buf_pool;
     uint32_t width, height;
     uint32_t mm_width, mm_height;
-    rt_device_t bl;
-    lv_disp_t * disp;
-#ifndef RT_USING_LVGL9
-    lv_disp_draw_buf_t draw_buf_dsc;
-    lv_disp_drv_t disp_drv;
-#endif
 } disp_dev;
 
 /**********************
@@ -74,30 +68,6 @@ struct disp_dev
 /**********************
  *   STATIC FUNCTIONS
  **********************/
-static void lv_bl_enable(bool enable)
-{
-    int brightness = 100;
-
-    disp_dev.bl = rt_device_find("backlight");
-    if (!disp_dev.bl)
-    {
-        rt_kprintf("%s: get bl fail!\n", __FUNCTION__);
-        return;
-    }
-
-    if (enable)
-    {
-        rt_kprintf("%s: turn on backlight\n", __FUNCTION__);
-        rt_device_control(disp_dev.bl, RTGRAPHIC_CTRL_POWERON, NULL);
-        rt_device_control(disp_dev.bl, RTGRAPHIC_CTRL_RECT_UPDATE, &brightness);
-    }
-    else
-    {
-        rt_kprintf("%s: turn off backlight\n", __FUNCTION__);
-        rt_device_control(disp_dev.bl, RTGRAPHIC_CTRL_POWEROFF, NULL);
-    }
-}
-
 static int32_t get_disp_info(void)
 {
     struct display_state *state;
@@ -197,7 +167,7 @@ static int32_t rk_disp_setup_buffers(void)
         return -1;
     }
 
-    size = disp_dev.width * disp_dev.height * (LV_COLOR_DEPTH >> 3);
+    size = disp_dev.width * disp_dev.height * (LV_COLOR_SIZE >> 3);
 
     memset(&pool_cfg, 0, sizeof(MB_POOL_CONFIG_S));
     pool_cfg.u64MBSize = size;
@@ -276,11 +246,7 @@ void rk_disp_exit(void)
     RKADK_MPI_SYS_Exit();
 }
 
-#ifdef RT_USING_LVGL9
-void rk_disp_flush(lv_disp_t *disp_drv, const lv_area_t *area, uint8_t *color_p)
-#else
 void rk_disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
-#endif
 {
     int32_t x;
     int32_t y;
@@ -288,22 +254,15 @@ void rk_disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     MB_BLK blk;
     lv_coord_t w = (area->x2 - area->x1 + 1);
     lv_coord_t h = (area->y2 - area->y1 + 1);
-#ifdef RT_USING_LVGL9
-    int hor_res = lv_disp_get_hor_res(disp_drv);
-    int ver_res = lv_disp_get_ver_res(disp_drv);
-#else
-    int hor_res = disp_drv->hor_res;
-    int ver_res = disp_drv->ver_res;
-#endif
 
     dbg("x %d:%d y %d:%d w %d h %d", area->x1, area->x2,
         area->y1, area->y2, w, h);
 
     for (y = area->y1; y <= area->y2; y++)
     {
-        uint8_t *disp = (uint8_t *)disp_dev.fb + (y * hor_res + area->x1) * (LV_COLOR_DEPTH >> 3);
-        memcpy(disp, color_p, w * (LV_COLOR_DEPTH >> 3));
-        color_p = (uint8_t *)color_p + w * (LV_COLOR_DEPTH >> 3);
+        lv_color_t *disp = disp_dev.fb + y * disp_drv->hor_res + area->x1;
+        memcpy(disp, color_p, w * sizeof(lv_color_t));
+        color_p += w;
     }
 
     if (!lv_disp_flush_is_last(disp_drv))
@@ -321,7 +280,7 @@ void rk_disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
 
 #if 0
     // CPU
-    memcpy(dst_ptr, disp_dev.fb, hor_res * ver_res * (LV_COLOR_DEPTH >> 3));
+    memcpy(dst_ptr, disp_dev.fb, disp_drv->hor_res * disp_drv->ver_res * (LV_COLOR_DEPTH >> 3));
 #else
     // RGA
     rga_buffer_t src_img, dst_img;
@@ -335,8 +294,10 @@ void rk_disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *c
     else
         err("Unsupport format\n");
 
-    src_img = wrapbuffer_physicaladdr(disp_dev.fb, hor_res, ver_res, format);
-    dst_img = wrapbuffer_physicaladdr(dst_ptr, hor_res, ver_res, format);
+    src_img = wrapbuffer_physicaladdr(disp_dev.fb, disp_drv->hor_res,
+                                      disp_drv->ver_res, format);
+    dst_img = wrapbuffer_physicaladdr(dst_ptr, disp_drv->hor_res,
+                                      disp_drv->ver_res, format);
     ret = imcheck(src_img, dst_img, (im_rect) {}, (im_rect) {});
     if (ret != IM_STATUS_NOERROR)
     {
@@ -371,7 +332,6 @@ void rk_disp_get_sizes(lv_coord_t *width, lv_coord_t *height, uint32_t *dpi)
     return;
 }
 
-#ifndef RT_USING_LVGL9
 static void rk_disp_rounder(lv_disp_drv_t *disp_drv, lv_area_t *area)
 {
     lv_coord_t w;
@@ -389,11 +349,12 @@ static void rk_disp_rounder(lv_disp_drv_t *disp_drv, lv_area_t *area)
     lv_area_set_width(area, w);
     lv_area_set_height(area, h);
 }
-#endif
 
 rt_err_t lv_port_disp_init(lv_disp_rot_t rotate_disp)
 {
     lv_coord_t lcd_w, lcd_h;
+    static lv_disp_draw_buf_t draw_buf_dsc;
+    static lv_disp_drv_t disp_drv; /*Descriptor of a display driver*/
 
     /*-------------------------
      * Initialize your display
@@ -404,10 +365,7 @@ rt_err_t lv_port_disp_init(lv_disp_rot_t rotate_disp)
         printf("rk_disp_init is fail\n");
         return -RT_ERROR;
     }
-    if (rotate_disp == LV_DISP_ROT_NONE || rotate_disp == LV_DISP_ROT_180)
-        rk_disp_get_sizes(&lcd_w, &lcd_h, NULL);
-    else
-        rk_disp_get_sizes(&lcd_h, &lcd_w, NULL);
+    rk_disp_get_sizes(&lcd_w, &lcd_h, NULL);
     /*-----------------------------
      * Create a buffer for drawing
      *----------------------------*/
@@ -436,7 +394,7 @@ rt_err_t lv_port_disp_init(lv_disp_rot_t rotate_disp)
     uint32_t size_in_px_cnt = lcd_w * lcd_h;
     MB_BLK blk;
 
-    ret = RK_MPI_MMZ_Alloc(&blk, size_in_px_cnt * (LV_COLOR_DEPTH >> 3),
+    ret = RK_MPI_MMZ_Alloc(&blk, size_in_px_cnt * (LV_COLOR_SIZE >> 3),
                            RK_MMZ_ALLOC_CACHEABLE);
     if (0 != ret)
     {
@@ -446,38 +404,55 @@ rt_err_t lv_port_disp_init(lv_disp_rot_t rotate_disp)
     }
 
     disp_dev.draw_buf_blk = blk;
-    disp_dev.draw_buf.size = size_in_px_cnt * (LV_COLOR_DEPTH >> 3);
+    disp_dev.draw_buf.size = size_in_px_cnt * (LV_COLOR_SIZE >> 3);
     disp_dev.draw_buf.map = RK_MPI_MMZ_Handle2VirAddr(blk);
     disp_dev.draw_buf.fd = RK_MPI_MMZ_Handle2Fd(blk);
 
-    /* Creat display buffer */
-    disp_dev.fb = (void *)rt_malloc(lcd_w * lcd_h * (LV_COLOR_DEPTH >> 3));
-    RT_ASSERT(disp_dev.fb != RT_NULL);
-
-#ifdef RT_USING_LVGL9
-    lv_disp_t * disp;
-    disp = lv_display_create(lcd_w, lcd_h);
-    lv_display_set_flush_cb(disp, rk_disp_flush);
-    lv_display_set_buffers(disp, disp_dev.draw_buf.map, NULL,
-                           disp_dev.draw_buf.size,
-                           LV_DISPLAY_RENDER_MODE_PARTIAL);
-    lv_display_set_color_format(disp, LV_COLOR_FORMAT_NATIVE_WITH_ALPHA);
-    disp_dev.disp = disp;
-#else
-    lv_disp_drv_init(&disp_dev.disp_drv);
-    lv_disp_draw_buf_init(&disp_dev.draw_buf_dsc, disp_dev.draw_buf.map, NULL,
+    lv_disp_draw_buf_init(&draw_buf_dsc, disp_dev.draw_buf.map, NULL,
                           size_in_px_cnt);
 
-    disp_dev.disp_drv.hor_res = lcd_w;
-    disp_dev.disp_drv.ver_res = lcd_h;
-    disp_dev.disp_drv.flush_cb = rk_disp_flush;
-    disp_dev.disp_drv.rounder_cb = rk_disp_rounder;
-    disp_dev.disp_drv.draw_buf = &disp_dev.draw_buf_dsc;
+    /*-----------------------------------
+     * Register the display in LVGL
+     *----------------------------------*/
+    lv_disp_drv_init(&disp_drv);   /*Basic initialization*/
 
-    disp_dev.disp = lv_disp_drv_register(&disp_dev.disp_drv);
-#endif
+    /*Set up the functions to access to your display*/
 
-    lv_bl_enable(true);
+    /*Set the resolution of the display*/
+    if (rotate_disp == LV_DISP_ROT_NONE)
+    {
+        disp_drv.hor_res = lcd_w;
+        disp_drv.ver_res = lcd_h;
+    }
+    else if (rotate_disp == LV_DISP_ROT_180)
+    {
+        disp_drv.hor_res = lcd_w;
+        disp_drv.ver_res = lcd_h;
+    }
+    else if (rotate_disp == LV_DISP_ROT_90)
+    {
+        disp_drv.hor_res = lcd_h;
+        disp_drv.ver_res = lcd_w;
+    }
+    else if (rotate_disp == LV_DISP_ROT_270)
+    {
+        disp_drv.hor_res = lcd_h;
+        disp_drv.ver_res = lcd_w;
+    }
+
+    /* Creat display buffer */
+    disp_dev.fb = (lv_color_t *)rt_malloc(disp_drv.hor_res * disp_drv.ver_res * sizeof(lv_color_t));
+    RT_ASSERT(disp_dev.fb != RT_NULL);
+
+    /*Used to copy the buffer's content to the display*/
+    disp_drv.flush_cb = rk_disp_flush;
+    disp_drv.rounder_cb = rk_disp_rounder;
+
+    /*Set a display buffer*/
+    disp_drv.draw_buf = &draw_buf_dsc;
+
+    /*Finally register the driver*/
+    lv_disp_drv_register(&disp_drv);
 
     return RT_EOK;
 }
@@ -494,8 +469,6 @@ rt_err_t lv_port_disp_deinit(void)
     {
         rt_free(disp_dev.fb);
     }
-
-    lv_disp_remove(disp_dev.disp);
 
     rk_disp_exit();
 

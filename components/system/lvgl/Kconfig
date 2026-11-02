@@ -769,8 +769,7 @@ menu "LVGL configuration"
             string "Set the working directory"
             depends on RT_LV_USE_FS_STDIO
         config LV_FS_STDIO_CACHE_SIZE
-            int ">0 to cache this number of bytes in lv_fs_read()"
-            default 0
+            string ">0 to cache this number of bytes in lv_fs_read()"
             depends on RT_LV_USE_FS_STDIO
 
         config RT_LV_USE_FS_POSIX
@@ -909,73 +908,66 @@ menu "LVGL configuration"
             default n
     endmenu
 
-    menu "Demos"
-        config RT_LVGL_USING_DEMOS
-            bool
-            default n
+    menuconfig RT_LVGL_USING_DEMOS
+        bool "Demos"
+        default n
 
-        config RT_LV_USE_DEMO_WIDGETS
-            bool "Show some widget"
-            select RT_LVGL_USING_DEMOS
-            default n
-        config RT_LV_DEMO_WIDGETS_SLIDESHOW
-            bool "Enable slide show"
-            select RT_LVGL_USING_DEMOS
-            depends on RT_LV_USE_DEMO_WIDGETS
-            default n
+        if RT_LVGL_USING_DEMOS
+            config RT_LV_USE_DEMO_WIDGETS
+                bool "Show some widget"
+                default n
+            config RT_LV_DEMO_WIDGETS_SLIDESHOW
+                bool "Enable slide show"
+                depends on RT_LV_USE_DEMO_WIDGETS
+                default n
 
-        config RT_LV_USE_DEMO_KEYPAD_AND_ENCODER
-            bool "Demonstrate the usage of encoder and keyboard"
-            select RT_LVGL_USING_DEMOS
-            default n
+            config RT_LV_USE_DEMO_KEYPAD_AND_ENCODER
+                bool "Demonstrate the usage of encoder and keyboard"
+                default n
 
-        config RT_LV_USE_DEMO_BENCHMARK
-            bool "Benchmark your system"
-            select RT_LVGL_USING_DEMOS
-            default n
-        config RT_LV_DEMO_BENCHMARK_RGB565A8
-            bool "Use RGB565A8 images with 16 bit color depth instead of ARGB8565"
-            select RT_LVGL_USING_DEMOS
-            depends on RT_LV_USE_DEMO_BENCHMARK
-            default n
+            config RT_LV_USE_DEMO_BENCHMARK
+                bool "Benchmark your system"
+                default n
+            config RT_LV_DEMO_BENCHMARK_RGB565A8
+                bool "Use RGB565A8 images with 16 bit color depth instead of ARGB8565"
+                depends on RT_LV_USE_DEMO_BENCHMARK
+                default n
 
-        config RT_LV_USE_DEMO_STRESS
-            bool "Stress test for LVGL"
-            select RT_LVGL_USING_DEMOS
-            default n
+            config RT_LV_USE_DEMO_STRESS
+                bool "Stress test for LVGL"
+                default n
 
-        config RT_LV_USE_DEMO_MUSIC
-            bool "Music player demo"
-            select RT_LVGL_USING_DEMOS
-            default n
-        config RT_LV_DEMO_MUSIC_SQUARE
-            bool "Enable Square"
-            depends on RT_LV_USE_DEMO_MUSIC
-            default n
-        config RT_LV_DEMO_MUSIC_LANDSCAPE
-            bool "Enable Landscape"
-            depends on RT_LV_USE_DEMO_MUSIC
-            default n
-        config RT_LV_DEMO_MUSIC_ROUND
-            bool "Enable Round"
-            depends on RT_LV_USE_DEMO_MUSIC
-            default n
-        config RT_LV_DEMO_MUSIC_LARGE
-            bool "Enable Large"
-            depends on RT_LV_USE_DEMO_MUSIC
-            select RT_LV_FONT_MONTSERRAT_16
-            select RT_LV_FONT_MONTSERRAT_22
-            select RT_LV_FONT_MONTSERRAT_32
-            default n
-        config RT_LV_DEMO_MUSIC_SMALL
-            bool
-            depends on RT_LV_USE_DEMO_MUSIC
-            select RT_LV_FONT_MONTSERRAT_12
-            select RT_LV_FONT_MONTSERRAT_16
-            default y if !RT_LV_DEMO_MUSIC_LARGE
-        config RT_LV_DEMO_MUSIC_AUTO_PLAY
-            bool "Enable Auto play"
-            depends on RT_LV_USE_DEMO_MUSIC
-            default n
-    endmenu
+            config RT_LV_USE_DEMO_MUSIC
+                bool "Music player demo"
+                default n
+            config RT_LV_DEMO_MUSIC_SQUARE
+                bool "Enable Square"
+                depends on RT_LV_USE_DEMO_MUSIC
+                default n
+            config RT_LV_DEMO_MUSIC_LANDSCAPE
+                bool "Enable Landscape"
+                depends on RT_LV_USE_DEMO_MUSIC
+                default n
+            config RT_LV_DEMO_MUSIC_ROUND
+                bool "Enable Round"
+                depends on RT_LV_USE_DEMO_MUSIC
+                default n
+            config RT_LV_DEMO_MUSIC_LARGE
+                bool "Enable Large"
+                depends on RT_LV_USE_DEMO_MUSIC
+                select RT_LV_FONT_MONTSERRAT_16
+                select RT_LV_FONT_MONTSERRAT_22
+                select RT_LV_FONT_MONTSERRAT_32
+                default n
+            config RT_LV_DEMO_MUSIC_SMALL
+                bool
+                depends on RT_LV_USE_DEMO_MUSIC
+                select RT_LV_FONT_MONTSERRAT_12
+                select RT_LV_FONT_MONTSERRAT_16
+                default y if !RT_LV_DEMO_MUSIC_LARGE
+            config RT_LV_DEMO_MUSIC_AUTO_PLAY
+                bool "Enable Auto play"
+                depends on RT_LV_USE_DEMO_MUSIC
+                default n
+        endif
 endmenu

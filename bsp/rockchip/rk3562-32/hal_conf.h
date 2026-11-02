@@ -62,10 +62,6 @@
 #define HAL_PL330_MODULE_ENABLED
 #endif
 
-#ifdef RT_USING_PCIE_RC
-#define HAL_PCIE_MODULE_ENABLED
-#endif
-
 #ifdef RT_USING_PWM
 #define HAL_PWM_MODULE_ENABLED
 #endif

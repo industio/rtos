@@ -36,8 +36,7 @@ do { \
 
 struct rockchip_spi2apb
 {
-    struct rt_spi_bus bus;
-    struct rt_spi_device dev;
+    struct rt_spi2apb_device device;
     struct SPI2APB_REG *base;
     rt_uint8_t irq;
     spi2apb_callback callback;
@@ -46,6 +45,8 @@ struct rockchip_spi2apb
 
 static struct rockchip_spi2apb rk_spi2apb =
 {
+    .device.config.mode = (SPI2APB_BIG_ENDIAN | SPI2APB_MSB),
+    .device.config.clock_polarity = SPI2APB_TXCP_INVERT,
     .base = SPI2APB,
     .irq = SPISLV0_IRQn,
     .callback = NULL,
@@ -66,9 +67,24 @@ static void rockchip_spi2apb_irq(int irq, void *param)
     rt_interrupt_leave();
 }
 
+static rt_err_t rockchip_spi2apb_init(struct rockchip_spi2apb *spi2apb, rt_device_t dev)
+{
+    HAL_SPI2APB_Configurate(spi2apb->base, spi2apb->device.config.mode | spi2apb->device.config.clock_polarity);
+
+    /* register irq */
+    rt_hw_interrupt_install(spi2apb->irq, rockchip_spi2apb_irq, spi2apb,
+                            dev->parent.name);
+    rt_hw_interrupt_umask(spi2apb->irq);
+    HAL_SPI2APB_UnmaskIrq(spi2apb->base, true);
+
+    return RT_EOK;
+}
+
 static rt_err_t rockchip_spi2apb_control(rt_device_t dev, int cmd, void *arg)
 {
-    struct rockchip_spi2apb *spi2apb = dev->user_data;
+    struct rt_spi2apb_device *device = (struct rt_spi2apb_device *)dev;
+    struct rockchip_spi2apb *spi2apb = device->parent.user_data;
+    struct rt_spi2apb_configuration *config;
     struct SPI2APB_REG *pReg;
     rt_err_t ret = RT_EOK;
 
@@ -76,10 +92,16 @@ static rt_err_t rockchip_spi2apb_control(rt_device_t dev, int cmd, void *arg)
     RT_ASSERT(arg != RT_NULL);
 
     pReg = spi2apb->base;
-    spi2apb_dbg(dev, "rt_spi2apb_control cmd: %d\n", cmd);
+    spi2apb_dbg(&device->parent, "rt_spi2apb_control cmd: %d\n", cmd);
 
     switch (cmd)
     {
+    case RT_DEVICE_CTRL_SPI2APB_CONFIGURATION:
+        config = (struct rt_spi2apb_configuration *)arg;
+        device->config.mode = config->mode;
+        device->config.clock_polarity = config->clock_polarity;
+        HAL_SPI2APB_Configurate(pReg, config->mode | config->clock_polarity);
+        break;
     case RT_DEVICE_CTRL_SPI2APB_QUERY_STATUS:
         *(rt_uint32_t *)arg = HAL_SPI2APB_ReadStatus(pReg);
         break;
@@ -106,41 +128,17 @@ static rt_err_t rockchip_spi2apb_control(rt_device_t dev, int cmd, void *arg)
     return ret;
 }
 
-static rt_err_t rockchip_spi2apb_configure(struct rt_spi_device *device,
-        struct rt_spi_configuration *cfg)
+#ifdef RT_USING_DEVICE_OPS
+const static struct rt_device_ops rockchip_spi2apb_ops =
 {
-    struct rockchip_spi2apb *spi2apb = device->bus->parent.user_data;
-    uint32_t ctrl = 0;
-
-#ifdef SPI2APB_TXCP_INVERT
-    if ((cfg->mode & 0x3) == 0)
-        ctrl |= SPI2APB_TXCP_INVERT;
-    else if ((cfg->mode & 0x3) == 2)
-        ctrl |= SPI2APB_RXCP_INVERT;
-    else
-        return -RT_EINVAL;
-#else
-    ctrl |= (cfg->mode & 0x3) << SPI2APB_CTRL0_CKM_SHIFT;
-#endif
-
-    /* MSB or LSB */
-    if (cfg->mode & RT_SPI_MSB)
-        ctrl |= SPI2APB_MSB;
-
-    if (cfg->reserved & RK_SPI_RESERVED_BIG_ENDIAN)
-        ctrl |= SPI2APB_BIG_ENDIAN;
-
-    spi2apb_dbg("%s mode=%x reserved=%x", __func__, cfg->mode, cfg->reserved);
-    HAL_SPI2APB_Configurate(spi2apb->base, ctrl);
-
-    return RT_EOK;
-}
-
-
-static struct rt_spi_ops rockchip_spi2apb_ops =
-{
-    rockchip_spi2apb_configure,
+    RT_NULL,
+    RT_NULL,
+    RT_NULL,
+    RT_NULL,
+    RT_NULL,
+    rockchip_spi2apb_control,
 };
+#endif
 
 #ifdef RT_USING_PM
 /**
@@ -175,46 +173,49 @@ static struct rt_device_pm_ops rockchip_spi2apb_pm_ops =
 };
 #endif
 
-int rt_hw_spi2apb_init(void)
+/**
+ * This function register a spi2apb device
+ */
+rt_err_t rt_hw_spi2apb_register(struct rt_spi2apb_device *spi2apb,
+                                const char *name,
+                                rt_uint32_t flag,
+                                void *data)
 {
-    char *bus_name = "spi2apb_bus";
-    char *device_name = "spi2apb";
-    struct rockchip_spi2apb *spi2apb = &rk_spi2apb;
-    rt_err_t ret;
+    struct rt_device *device;
 
-    /* default mode0, msb, big enadian */
-#ifdef SPI2APB_TXCP_INVERT
-    HAL_SPI2APB_Configurate(spi2apb->base, SPI2APB_BIG_ENDIAN | SPI2APB_MSB | SPI2APB_TXCP_INVERT);
+    RT_ASSERT(spi2apb != RT_NULL);
+
+    device = &(spi2apb->parent);
+
+    device->type        = RT_Device_Class_Miscellaneous;
+    device->rx_indicate = RT_NULL;
+    device->tx_complete = RT_NULL;
+
+    rockchip_spi2apb_init(data, device);
+
+#ifdef RT_USING_DEVICE_OPS
+    device->ops         = &rockchip_spi2apb_ops;
 #else
-    HAL_SPI2APB_Configurate(spi2apb->base, SPI2APB_BIG_ENDIAN | SPI2APB_MSB);
+    device->init        = RT_NULL;
+    device->open        = RT_NULL;
+    device->close       = RT_NULL;
+    device->read        = RT_NULL;
+    device->write       = RT_NULL;
+    device->control     = rockchip_spi2apb_control;
 #endif
-
-    /* register irq */
-    rt_hw_interrupt_install(spi2apb->irq, rockchip_spi2apb_irq, spi2apb, bus_name);
-    rt_hw_interrupt_umask(spi2apb->irq);
-    HAL_SPI2APB_UnmaskIrq(spi2apb->base, true);
-
-    spi2apb->bus.parent.user_data = spi2apb;
+    device->user_data   = data;
 
 #ifdef RT_USING_PM
     rt_pm_device_register((struct rt_device *)spi2apb, &rockchip_spi2apb_pm_ops);
 #endif
 
-    ret = rt_spi_bus_register(&spi2apb->bus, bus_name, &rockchip_spi2apb_ops);
-    if (ret)
-    {
-        rt_kprintf("spi2apb bus register failed, ret=%d\n", ret);
-    }
+    return rt_device_register(device, name, flag);
+}
 
-    ret = rt_spi_bus_attach_device(&spi2apb->dev, device_name, bus_name, RT_NULL);
-    if (ret)
-    {
-        rt_kprintf("spi2apb dev register failed, ret=%d\n", ret);
-    }
-
-    spi2apb->bus.parent.control = rockchip_spi2apb_control;
-
-    return ret;
+int rt_hw_spi2apb_init(void)
+{
+    return rt_hw_spi2apb_register(&rk_spi2apb.device, "spi2apb",
+                                  RT_DEVICE_FLAG_RDWR, &rk_spi2apb);
 }
 
 INIT_DEVICE_EXPORT(rt_hw_spi2apb_init);

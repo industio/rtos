@@ -49,18 +49,9 @@ struct rk_opp
     uint32_t len;
 };
 
-struct rk_otp_opp_info
-{
-    uint16_t min_freq;
-    uint16_t max_freq;
-    uint8_t volt;
-    uint8_t length;
-} __packed;
-
 struct rk_opp_otp
 {
     uint32_t pvt_len_offset;
-    uint32_t opp_info_offset;
 };
 
 struct rk_opp_table
@@ -70,7 +61,6 @@ struct rk_opp_table
     const struct rk_pvtm_config *pvtm_cfg;
     const struct rk_pvtm_table *pvtm_tbl;
     const struct rk_opp_otp *otp;
-    struct rk_otp_opp_info *otp_opp_info;
     struct regulator_desc *reg_desc;
     struct rt_mutex lock;
     struct rt_device parent;

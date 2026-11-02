@@ -174,8 +174,6 @@ void rt_hw_board_init()
     rt_console_set_output_hook(swo_console_hook);
 #endif
 
-    rt_hw_idle_hook_init();
-
     /* Call components board initial (use INIT_BOARD_EXPORT()) */
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();

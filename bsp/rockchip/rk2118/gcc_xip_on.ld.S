@@ -197,21 +197,7 @@ SECTIONS
         __copy_table_end__ = .;
     }
 
-    XIP_FLAG_SRC = LOADADDR(.copy.table) + SIZEOF(.copy.table);
-    XIP_FLAG_DST = XIP_FLAG_SRC;
-    .xip_flag XIP_FLAG_DST : AT(XIP_FLAG_SRC)
-    {
-        . = ALIGN(4);
-        __xip_flag_start__ = .;
-    #if defined(RT_USING_XIP)
-        LONG (0x55aaaa55)
-    #else
-        LONG (0x00000000)
-    #endif
-        __xip_flag_end__ = .;
-    }
-
-    CTORS_SRC = LOADADDR(.xip_flag) + SIZEOF(.xip_flag);
+    CTORS_SRC = LOADADDR(.copy.table) + SIZEOF(.copy.table);
     CTORS_DST = CTORS_SRC;
     .ctors CTORS_DST : AT(CTORS_SRC)
     {
@@ -297,7 +283,7 @@ SECTIONS
     .heap HEAP_DST (NOLOAD) :
     {
         . = ALIGN(32);
-        PROVIDE(__sram_heap_start__ = .);
+        PROVIDE(__sram_heap_begin__ = .);
         . = ORIGIN(DATA) + LENGTH(DATA) - __STACK_SIZE - __STACKSEAL_SIZE;
         PROVIDE(__sram_heap_end__ = .);
         . = ALIGN(32);
@@ -331,7 +317,7 @@ SECTIONS
     .ddr.heap DDR_BSS_DST (NOLOAD) :
     {
         . = ALIGN(32);
-        PROVIDE(__ddr_heap_start__ = .);
+        PROVIDE(__ddr_heap_begin__ = .);
         . = ORIGIN(DDR) + LENGTH(DDR);
         PROVIDE(__ddr_heap_end__ = .);
         . = ALIGN(32);

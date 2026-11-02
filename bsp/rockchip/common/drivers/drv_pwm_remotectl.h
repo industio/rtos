@@ -44,8 +44,8 @@
 
 #define RT_PWM_CLK                              0x20C020C0
 #define RT_PWM_FILTER_VAL                       0xFFFF03F1
-#define RT_PWRMATCH_CTRL                        0x00090009
-#define RT_PWRMATCH_CTRL_DISABLE                0x00090000
+#define RT_PWRMATCH_CTRL                        0x00050005
+#define RT_PWRMATCH_CTRL_DISABLE                0x00050000
 #define RT_PWRMATCH_INT_ENABLE                  0x00020002
 #define RT_PWRMATCH_INT_DISABLE                 0x00020000
 
@@ -55,7 +55,6 @@ struct remotectl_pwm_info
     uint32_t channel;
     uint32_t pwrmatch_value;
     uint32_t rtl_usercode;
-    bool usercode_chk;
 };
 
 struct rt_remotectl_keycode

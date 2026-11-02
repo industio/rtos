@@ -164,7 +164,7 @@ static uint32_t get_stride(uint32_t format, uint32_t width)
 
 static void usage(void)
 {
-    rt_kprintf("modetest [-fpagv]\n\n");
+    rt_kprintf("modetest [-p]\n\n");
     rt_kprintf("\t-p <plane_id>:<w>x<h>:<crtc_w>x<crtc_h>[+<x>+<y>][#<zpos>][@<format>] \tset plane\n");
     rt_kprintf("\t-f <pattern> \tspecify fill pattern\n");
     rt_kprintf("\t-a \ttest alpha\n");

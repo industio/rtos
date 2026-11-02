@@ -48,7 +48,6 @@ static void pwm_remotectl_wakeup_init()
     WRITE_REG(reg->FILTER_CTRL, RT_PWM_FILTER_VAL);
     WRITE_REG(reg->PWRMATCH_ARBITER, (1 << rtl_pwm_info_table[0].channel));
     WRITE_REG(reg->PWRMATCH_VALUE[0], rtl_pwm_info_table[0].pwrmatch_value);
-    WRITE_REG(reg->PWRMATCH_CTRL, RT_PWRMATCH_CTRL);
 }
 
 static void remotectl_init()
@@ -125,18 +124,9 @@ static void remotectl_parse_pwm_data(uint32_t data)
             }
             else
             {
-                if (rtl_pwm_info_table[0].usercode_chk)
-                {
-                    rt_kprintf("remotectl err usercode 0x%04x, expect 0x%04x\n", remote_data->usercode, rtl_pwm_info_table[0].rtl_usercode);
-                    remote_data->count = 0;
-                    remote_data->state = RMC_PRELOAD;
-                }
-                else
-                {
-                    remote_data->count = 0;
-                    remote_data->state = RMC_GETDATA;
-                    remote_data->code = 0;
-                }
+                rt_kprintf("remotectl err usercode 0x%04x, expect 0x%04x\n", remote_data->usercode, rtl_pwm_info_table[0].rtl_usercode);
+                remote_data->count = 0;
+                remote_data->state = RMC_PRELOAD;
             }
         }
         break;
@@ -291,6 +281,7 @@ const static struct rt_device_ops remotectl_ops =
 static int rt_remotectl_pm_suspend(const struct rt_device *device, rt_uint8_t mode)
 {
     REMOTE_DBG("%s enter\n", __FUNCTION__);
+    WRITE_REG(reg->PWRMATCH_CTRL, RT_PWRMATCH_CTRL);
     return RT_EOK;
 }
 
@@ -308,6 +299,7 @@ static void rt_remotectl_pm_resume(const struct rt_device *device, rt_uint8_t mo
         remote_data->key.press = 0;
         remote_data->key.keycode = (rtl_pwm_info_table[0].pwrmatch_value >> 16) & 0xff;
         rt_sem_release(remotectl_sem);
+        WRITE_REG(reg->PWRMATCH_CTRL, RT_PWRMATCH_CTRL_DISABLE);
     }
     else
     {

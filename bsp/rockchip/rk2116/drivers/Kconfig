@@ -31,24 +31,6 @@ menu "Enable GMAC"
     endif
 endmenu
 
-config RT_USING_FLEXBUS
-    bool "Enable Flexbus"
-    default n
-
-if RT_USING_FLEXBUS
-config RT_USING_FLEXBUS_ADC
-    bool "Enable Flexbus ADC mode"
-    select RT_USING_ADC
-    select RT_USING_DMA
-    default n
-
-config RT_USING_FLEXBUS_DAC
-    bool "Enable Flexbus DAC mode"
-    select RT_USING_DAC
-    select RT_USING_DMA
-    default n
-endif
-
 if RT_USING_I2C
 menu "Enable I2C"
     config RT_USING_I2C0

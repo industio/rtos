@@ -63,10 +63,6 @@ static void flexbus_adc_isr(struct flexbus_dev *flexbus, rt_uint32_t isr)
     HAL_Status ret;
 
     ret = HAL_FLEXBUS_ADC_Isr(pFBADC, isr);
-    if (ret == HAL_INVAL)
-    {
-        return;
-    }
 
     if (pFBADC->continueMode)
     {
@@ -118,7 +114,19 @@ static rt_err_t flexbus_adc_read_raw(struct rt_adc_device *device, rt_uint32_t c
 
     rt_hw_cpu_dcache_ops(RT_HW_CACHE_INVALIDATE, pFBADC->pDstBuf0,
                          HAL_DIV_ROUND_UP(HAL_FLEXBUS_MIN_RX_NUM_OF_DFS_MIN * pFBADC->dfs, 8));
-    val_mask = HAL_BIT(pFBADC->dfs) - 1;
+    switch (pFBADC->dfs)
+    {
+    case 4:
+        val_mask = 0xf;
+        break;
+    case 8:
+        val_mask = 0xff;
+        break;
+    case 16:
+    default:
+        val_mask = 0xffff;
+        break;
+    }
     pBuf = pFBADC->pDstBuf0;
     *value = pBuf[0] & val_mask;
 
@@ -150,7 +158,7 @@ static int rockchip_flexbus_adc_init(void)
 
     pFB = &flexbus->instance;
     pFBADC = &flexbus_adc.instance;
-    if (pFB->pOpMode->opMode1 != FLEXBUS1_OPMODE_ADC)
+    if (pFB->opMode1 != FLEXBUS1_OPMODE_ADC)
     {
         LOG_E("%s failed! opMode1 mismatch!\n", __func__);
         return -RT_EINVAL;
@@ -171,11 +179,7 @@ static int rockchip_flexbus_adc_init(void)
     }
     else
     {
-        if (flexbus->hal_dev->txclkID != CLK_INVALID)
-        {
-            clk_set_rate(flexbus->hal_dev->rxclkID,
-                         HAL_MIN(pFBADC->rate * 2, HAL_FLEXBUS_MAX_RX_RATE));
-        }
+        clk_set_rate(flexbus->hal_dev->rxclkID, HAL_MIN(pFBADC->rate * 2, HAL_FLEXBUS_MAX_RX_RATE));
     }
 #endif
 

@@ -274,11 +274,5 @@ config RT_USING_COMMON_TEST
         bool "Enable BSP Common RGA TEST"
         depends on RT_USING_RGA
         default n
-
-    config RT_USING_COMMON_TEST_PCIE_CC_SPEED_TEST_EP
-        bool "Enable BSP Common PCIE chips connect speed test"
-        depends on RT_USING_PCIE_CHIPS_CONNECT
-        default n
-
     endif
 endmenu

@@ -116,16 +116,8 @@ static rt_err_t gt1x_control(struct rt_touch_device *device, int cmd, void *data
         rt_uint8_t opr_buf[7] = {0};
         ret = gt1x_read_regs(gt1x_client, GTP_REG_CONFIG_DATA, 7, opr_buf);
         RT_ASSERT(ret == RT_EOK);
-        if ((gt1x_abs_x_max != 0) || (gt1x_abs_y_max != 0))
-        {
-            info->range_x = gt1x_abs_x_max;
-            info->range_y = gt1x_abs_y_max;
-        }
-        else
-        {
-            info->range_x = (opr_buf[2] << 8) + opr_buf[1];
-            info->range_y = (opr_buf[4] << 8) + opr_buf[3];
-        }
+        info->range_x = (opr_buf[2] << 8) + opr_buf[1];
+        info->range_y = (opr_buf[4] << 8) + opr_buf[3];
         info->point_num = opr_buf[5] & 0x0f;
     }
 
@@ -419,11 +411,7 @@ int gt1x_reset_guitar(void)
     /* int synchronization */
     rt_pin_write(TOUCH_IRQ_PIN, 0);
     rt_thread_mdelay(50);
-#ifdef TOUCH_IRQ_PIN_MODE
-    rt_pin_mode(TOUCH_IRQ_PIN, TOUCH_IRQ_PIN_MODE);
-#else   //default
     rt_pin_mode(TOUCH_IRQ_PIN, PIN_MODE_INPUT_PULLDOWN);
-#endif
 
     /* this operation is necessary even when the esd check
        fucntion dose not turn on */
@@ -725,11 +713,7 @@ int rt_hw_gt1x_init(void)
     RT_ASSERT(touch_device != RT_NULL);
 
     cfg.irq_pin.pin  = TOUCH_IRQ_PIN;
-#ifdef TOUCH_IRQ_PIN_MODE
-    cfg.irq_pin.mode = TOUCH_IRQ_PIN_MODE;
-#else   //default
     cfg.irq_pin.mode = PIN_MODE_INPUT_PULLDOWN;
-#endif
     cfg.dev_name = TOUCH_I2C_DEV;
     rt_memcpy(&touch_device->config, &cfg, sizeof(struct rt_touch_config));
 

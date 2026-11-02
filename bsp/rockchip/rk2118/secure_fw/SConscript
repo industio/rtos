@@ -11,7 +11,7 @@ src += ['src/tfm_fw_intergrity_api.c']
 src += ['src/tfm_platform_api.c']
 src += ['src/os_wrapper/tfm_ns_interface_rtos.c']
 src += ['src/os_wrapper/mutex.c']
-if  GetDepend('CPU_RUN_IN_XIP'):
+if rtconfig.XIP == 'Y':
     LIBS    = ['libtfm_s_veneers.a']
 else:
     LIBS    = ['libtfm_s_veneers_xip_off.a']

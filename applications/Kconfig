@@ -23,12 +23,6 @@ choice
         help
             "LVGL Music demo"
 
-    config RT_LV_DEMO_WIDGETS
-        bool "Widgets demo enable"
-        select RT_LV_USE_DEMO_WIDGETS
-        help
-            "LVGL Widgets demo"
-
     config RT_LV_DEMO_BENCHMARK
         bool "benchmark demo enable"
         select RT_LV_USE_DEMO_BENCHMARK

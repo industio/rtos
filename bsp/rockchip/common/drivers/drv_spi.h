@@ -35,22 +35,9 @@
 #define RK_SPI_EXT_FREELOOP_MODE
 enum rk_spi_ext_freeloop_type
 {
-    RK_SPI_FREELOOP_TYPE_UNKNOW,  /**< Type Unknown */
-    RK_SPI_FREELOOP_DMA_CYCLIC,   /**< Freeloop implementation by DMA cyclic */
-    RK_SPI_FREELOOP_ISR_RECONFIG, /**< Freeloop implementation by IRQ reconfiguration */
-};
-
-struct rt_spi_ready_gpio
-{
-    struct GPIO_REG *gpio;
-#ifdef HAL_GPIO_MODULE_ENABLED
-    ePINCTRL_GPIO_PINS pin;
-#endif
-};
-
-struct spi_board
-{
-    struct rt_spi_ready_gpio ready;
+    RK_SPI_FREELOOP_TYPE_UNKNOW,
+    RK_SPI_FREELOOP_DMA_CYCLIC,
+    RK_SPI_FREELOOP_ISR_RECONFIG,
 };
 
 rt_err_t rk_spi_ext_freeloop_start(struct rt_spi_device *device,

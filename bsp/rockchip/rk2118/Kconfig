@@ -40,21 +40,6 @@ choice
 
 endchoice
 
-choice
-    prompt "CPU running space"
-    default CPU_RUN_IN_XIP
-
-    config CPU_RUN_IN_XIP
-        bool "cpu running in XIP flash"
-
-    config CPU_RUN_IN_SRAM
-        bool "cpu running in sram"
-
-    config CPU_RUN_IN_DDR
-        bool "cpu running in DDR"
-
-endchoice   
-
 config ARCH_ARM_CORTEX_SECURE
     bool "STAR-MC1 Core0 run in security context"
     select RK2118_CPU_CORE0

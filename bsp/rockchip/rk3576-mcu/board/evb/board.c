@@ -28,20 +28,6 @@
 #ifdef RT_USING_RK_ATAGS
 #include <rk_atags.h>
 #endif
-#ifdef RT_USING_I2C
-#include "drv_i2c.h"
-#endif
-
-#ifdef RT_USING_I2C
-const struct rockchip_i2c_config rockchip_i2c_config_table[] =
-{
-    {
-        .id = I2C8,
-        .speed = I2C_400K,
-    },
-    { /* sentinel */ }
-};
-#endif
 
 #ifdef RT_USING_CRU
 

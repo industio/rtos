@@ -14,32 +14,6 @@
 #include "drivers/pin.h"
 
 /**
- * @brief  Config iomux m0 for I2C0
- */
-RT_WEAK void i2c0_m1_iomux_config(void)
-{
-    HAL_PINCTRL_SetIOMUX(GPIO_BANK0,
-                         GPIO_PIN_C1,
-                         PIN_CONFIG_MUX_FUNC9);
-    HAL_PINCTRL_SetIOMUX(GPIO_BANK0,
-                         GPIO_PIN_C2,
-                         PIN_CONFIG_MUX_FUNC9);
-}
-
-/**
- * @brief  Config iomux m0 for I2C0
- */
-RT_WEAK void i2c1_m0_iomux_config(void)
-{
-    HAL_PINCTRL_SetIOMUX(GPIO_BANK0,
-                         GPIO_PIN_B2,
-                         PIN_CONFIG_MUX_FUNC11);
-    HAL_PINCTRL_SetIOMUX(GPIO_BANK0,
-                         GPIO_PIN_B3,
-                         PIN_CONFIG_MUX_FUNC11);
-}
-
-/**
  * @brief  Config iomux m0 for UART0
  */
 RT_WEAK void uart0_m0_iomux_config(void)

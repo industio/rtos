@@ -61,10 +61,6 @@
 #define HAL_GMAC_MODULE_ENABLED
 #endif
 
-#ifdef RT_USING_I2C
-#define HAL_I2C_MODULE_ENABLED
-#endif
-
 #ifdef RT_USING_I2STDM
 #define HAL_I2STDM_MODULE_ENABLED
 #endif

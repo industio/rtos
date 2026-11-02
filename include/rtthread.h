@@ -591,7 +591,7 @@ rt_device_t rt_console_set_device(const char *name);
 rt_device_t rt_console_get_device(void);
 #endif
 
-typedef int (* console_hook)(const char *str, int flush);
+typedef void (* console_hook)(const char *str, int flush);
 console_hook rt_console_set_output_hook(console_hook hook);
 
 rt_err_t rt_get_errno(void);

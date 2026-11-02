@@ -1,17 +1,5 @@
 import os
 
-def check_define_in_file(file_path, define_string):
-    try:
-        with open(file_path, 'r') as file:
-            for line in file:
-                if line.strip() == define_string:
-                    return True
-        return False
-    except FileNotFoundError:
-        return False
-    except Exception as e:
-        return False
-
 # toolchains options
 ARCH='arm'
 CPU='cortex-m33'
@@ -41,6 +29,11 @@ if os.getenv('RTT_EXEC_PATH'):
 #BUILD = 'debug'
 BUILD = 'release'
 
+XIP = 'Y'
+#XIP = 'N'
+if os.getenv('RTT_BUILD_XIP'):
+    XIP = os.getenv('RTT_BUILD_XIP').upper()
+
 if PLATFORM == 'gcc':
     # toolchains
     PREFIX = 'arm-none-eabi-'
@@ -63,16 +56,14 @@ if PLATFORM == 'gcc':
     CPATH = ''
     LPATH = ''
 
-    LINK_SCRIPT = 'gcc_xip_on.ld'
-
-    if check_define_in_file('rtconfig.h', '#define CPU_RUN_IN_XIP'):
+    if XIP == 'Y':
+        AFLAGS += ' -D__STARTUP_COPY_MULTIPLE -D__STARTUP_CLEAR_BSS_MULTIPLE'
+        CFLAGS += ' -D__STARTUP_COPY_MULTIPLE -D__STARTUP_CLEAR_BSS_MULTIPLE'
         LINK_SCRIPT = 'gcc_xip_on.ld'
-
-    if check_define_in_file('rtconfig.h', '#define CPU_RUN_IN_SRAM'):
-        LINK_SCRIPT = 'gcc_xip_off_sram.ld'
-
-    if check_define_in_file('rtconfig.h', '#define CPU_RUN_IN_DDR'):
-        LINK_SCRIPT = 'gcc_xip_off_ddr.ld'
+    else:
+        AFLAGS += ' -D__STARTUP_CLEAR_BSS'
+        CFLAGS += ' -D__STARTUP_CLEAR_BSS'
+        LINK_SCRIPT = 'gcc_xip_off.ld'
 
     LFLAGS += '-T %s' % LINK_SCRIPT
 
@@ -80,7 +71,7 @@ if PLATFORM == 'gcc':
         CFLAGS += ' -O0 -gdwarf-2'
         AFLAGS += ' -gdwarf-2'
     else:
-        CFLAGS += ' -Os'
+        CFLAGS += ' -O2'
     CXXFLAGS = CFLAGS
 
     POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'

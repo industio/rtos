@@ -19,5 +19,5 @@ extern  void *_end;
 extern  void *_heap_end;
 #define HEAP_BEGIN  &_end
 #define HEAP_END    &_heap_end
-#define NCA9539_I2C_BUS_NAME           "i2c7"
+
 #endif

@@ -15,14 +15,12 @@
   */
 #include <rtthread.h>
 #include "hal_base.h"
-
-#ifdef RT_USING_TFM_RUNTIME
 #include "tfm_ns_interface.h"
-#endif
-
 #include "drv_flash_partition.h"
 
-#ifdef RK_USING_MISC_TEST
+extern void rk_ota_set_boot_success(void);
+extern uint32_t psa_framework_version(void);
+extern uint32_t firmware_version;
 
 void test_reg_read(void)
 {
@@ -42,6 +40,44 @@ void test_reg_read(void)
         rt_kprintf("read register latency: %d(value=0x%x), %d(value=0x%x)\n",
                    time1, value1, time2, value2);
     }
+}
+
+int main(void)
+{
+    //test_reg_read();
+
+    //tfm_ns_interface_init();
+    //psa_framework_version();
+#ifdef RK2118_CPU_CORE0
+    int fw_ver = 0;
+
+    rt_kprintf("this is cpu0\n");
+
+#ifdef RT_USING_SNOR
+    fw_ver = get_rk_partition_fw_ver();
+#elif defined(RT_USING_FWANALYSIS)
+    fw_ver = firmware_version;
+#endif
+    rt_kprintf("FIRMWARE_VER: %d.%d.%d\n", (uint8_t)(fw_ver >> 24),
+               (uint8_t)(fw_ver >> 16), (uint16_t)(fw_ver));
+
+#ifdef RT_BUILD_RECOVERY_FW
+    // set secure for USB2.0_OTG master port
+    // SGRF_SOC_SECURE0.bit8 = 0
+    *((rt_uint32_t *)0x40150140) = 0x01000000;
+
+    rt_kprintf("in recovery mode\n");
+#else
+#ifdef RT_USING_NEW_OTA
+    rk_ota_set_boot_success();
+#endif
+#endif
+
+#else
+    rt_kprintf("this is cpu1\n");
+#endif
+
+    return 0;
 }
 
 extern void coremark_main(void);
@@ -248,51 +284,3 @@ void mem_bw_test(int argc, char **argv)
 #include <finsh.h>
 MSH_CMD_EXPORT(mem_bw_test, mem bandwidth test);
 #endif
-
-#endif /* end of RK_USING_MISC_TEST */
-
-extern void rk_ota_set_boot_success(void);
-extern uint32_t psa_framework_version(void);
-extern uint32_t firmware_version;
-
-int main(void)
-{
-    //test_reg_read();
-
-    //tfm_ns_interface_init();
-    //psa_framework_version();
-#ifdef RK2118_CPU_CORE0
-    int fw_ver = 0;
-
-    rt_kprintf("this is cpu0\n");
-
-#ifdef RT_USING_SNOR
-    fw_ver = get_rk_partition_fw_ver();
-#ifdef RT_USING_FWANALYSIS
-    if (!fw_ver)
-        fw_ver = firmware_version;
-#endif
-#elif defined(RT_USING_FWANALYSIS)
-    fw_ver = firmware_version;
-#endif
-    rt_kprintf("FIRMWARE_VER: %d.%d.%d\n", (uint8_t)(fw_ver >> 24),
-               (uint8_t)(fw_ver >> 16), (uint16_t)(fw_ver));
-
-#ifdef RT_BUILD_RECOVERY_FW
-    // set secure for USB2.0_OTG master port
-    // SGRF_SOC_SECURE0.bit8 = 0
-    *((rt_uint32_t *)0x40150140) = 0x01000000;
-
-    rt_kprintf("in recovery mode\n");
-#else
-#ifdef RT_USING_NEW_OTA
-    rk_ota_set_boot_success();
-#endif
-#endif
-
-#else
-    rt_kprintf("this is cpu1\n");
-#endif
-
-    return 0;
-}

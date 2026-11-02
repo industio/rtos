@@ -17,7 +17,6 @@
 #include "drv_clock.h"
 #include "drv_regulator.h"
 
-#include "board.h"
 #include "hal_base.h"
 #include "hal_bsp.h"
 
@@ -108,10 +107,6 @@ static rt_err_t rk_acdcdig_dsm_start(struct audio_codec *codec,
 
     HAL_ACDCDIG_DSM_Enable(dsm->hAcdcDigDsm, stream);
 
-#ifdef PA_MUTE_PIN
-    HAL_GPIO_SetPinLevel(PA_MUTE_GPIO, PA_MUTE_PIN, PA_MUTE_SWITCH_ON);
-#endif
-
     return RT_EOK;
 }
 
@@ -119,11 +114,6 @@ static rt_err_t rk_acdcdig_dsm_stop(struct audio_codec *codec,
                                     eAUDIO_streamType stream)
 {
     struct rk_acdcdig_dsm_dev *dsm = to_acdcdig_dsm(codec);
-
-#ifdef PA_MUTE_PIN
-    HAL_GPIO_SetPinLevel(PA_MUTE_GPIO, PA_MUTE_PIN, PA_MUTE_SWITCH_OFF);
-    rt_thread_mdelay(10);   //在客户板子上实测值，PA型号：AW8055
-#endif
 
     HAL_ACDCDIG_DSM_Disable(dsm->hAcdcDigDsm, stream);
 

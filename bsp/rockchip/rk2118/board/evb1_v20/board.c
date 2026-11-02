@@ -53,10 +53,6 @@
 #include "tas5805m.h"
 #endif
 
-#ifdef RT_USING_CODEC_AW85805
-#include "aw85805.h"
-#endif
-
 #ifdef RT_USING_RKPLAYER_APP
 #include "rkplayer.h"
 #endif
@@ -216,7 +212,6 @@ const struct remotectl_pwm_info rtl_pwm_info_table[] =
         .channel = 3,
         .pwrmatch_value = 0xdf20fb04,
         .rtl_usercode = 0x04fb,
-        .usercode_chk = false,
     },
     { /* sentinel */ }
 };
@@ -238,26 +233,6 @@ const struct tas5805m_board_cfg tas5805m_devices[] =
     },
     { .id = 1, .i2c_bus_name = "i2c0", .i2c_addr = 0x2d },
     { .id = 2, .i2c_bus_name = "i2c0", .i2c_addr = 0x2e },
-    { .id = -1 },
-};
-#endif
-
-#ifdef RT_USING_CODEC_AW85805
-const struct aw85805_board_cfg aw85805_devices[] =
-{
-    {
-        .id = 0,
-        .i2c_bus_name = "i2c0",
-        .i2c_addr = 0x34,
-        .pdn_gpio_bank = GPIO_BANK3,
-        .pdn_gpio_grp = GPIO3,
-        .pdn_gpio_pin = GPIO_PIN_A6,
-        .adr_gpio_bank = GPIO_BANK3,
-        .adr_gpio_grp = GPIO3,
-        .adr_gpio_pin = GPIO_PIN_A7,
-    },
-    { .id = 1, .i2c_bus_name = "i2c0", .i2c_addr = 0x35 },
-    { .id = 2, .i2c_bus_name = "i2c0", .i2c_addr = 0x36 },
     { .id = -1 },
 };
 #endif
@@ -350,8 +325,6 @@ void rt_hw_board_init()
 #ifdef RT_USING_SWO_PRINTF
     rt_console_set_output_hook(swo_console_hook);
 #endif
-
-    rt_hw_idle_hook_init();
 
     /* Call components board initial (use INIT_BOARD_EXPORT()) */
 #ifdef RT_USING_COMPONENTS_INIT
